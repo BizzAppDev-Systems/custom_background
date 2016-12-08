@@ -2,7 +2,7 @@
 from openerp import models, fields, api
 
 class Report(osv.Model):
-    _name = "report"
+    _ingerit = "report"
 
 
     @api.v7
