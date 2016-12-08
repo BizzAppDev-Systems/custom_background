@@ -1,17 +1,42 @@
 # -*- coding: utf-8 -*-
 from openerp import models, fields, api
+from openerp import models, fields, api
+from openerp import SUPERUSER_ID
+from openerp.exceptions import AccessError
+from openerp.osv import osv, fields
+from openerp.sql_db import TestCursor
+from openerp.tools import config
+from openerp.tools.misc import find_in_path
+from openerp.tools.translate import _
+from openerp.addons.web.http import request
+from openerp.tools.safe_eval import safe_eval as eval
+from openerp.exceptions import UserError
+
+import re
+import time
+import base64
+import logging
+import tempfile
+import lxml.html
+import os
+import subprocess
+from contextlib import closing
+from distutils.version import LooseVersion
+from functools import partial
+from pyPdf import PdfFileWriter, PdfFileReader
+from reportlab.graphics.barcode import createBarcodeDrawing
 
 
 class Report(models.Model):
     _inherit = "ir.actions.report.xml"
 
     custom_report_background = fields.Boolean(string='Custom Report Background')
-    
-    
+
     @api.v7
     def get_pdf(self, cr, uid, ids, report_name, html=None, data=None, context=None):
         """This method generates and returns pdf version of a report.
         """
+        print "22222222222222222222222222", report_name, ids, context
         if context is None:
             context = {}
 
@@ -40,6 +65,7 @@ class Report(models.Model):
 
         # Get the ir.actions.report.xml record we are working on.
         report = self._get_report_from_name(cr, uid, report_name)
+        print "22211111111111111111!", report
         # Check if we have to save the report or if we have to get one from the db.
         save_in_attachment = self._check_attachment_use(cr, uid, ids, report)
         # Get the paperformat associated to the report, otherwise fallback on the company one.
@@ -116,4 +142,5 @@ class Report(models.Model):
             paperformat, specific_paperformat_args, save_in_attachment,
             context.get('set_viewport_size')
         )
+
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
