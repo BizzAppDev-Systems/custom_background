@@ -13,6 +13,7 @@
     "init_xml": [],
     "data": [
         "view/ir_actions.xml",
+        "view/res_company_view.xml",
     ],
     'demo_xml': [
     ],
@@ -21,7 +22,8 @@
     'installable': True,
     'active': False,
     'auto_install': False,
-    'application':False
-    
+    'application': False,
+    'license': 'Other proprietary',
+
 }
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
