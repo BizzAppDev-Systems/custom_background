@@ -8,7 +8,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//form//notebook//page[@name='configuration']" position="inside">
                     <separator string="Custom Background Image" colspan="4"/>
-                    <field name="custom_report_background_image" widget="image"/>
+                    <field name="custom_report_background_image"/>
                 </xpath>
             </field>
         </record>
