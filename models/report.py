@@ -51,7 +51,6 @@ class Report(models.Model):
     def get_pdf(self, cr, uid, ids, report_name, html=None, data=None, context=None):
         """This method generates and returns pdf version of a report.
         """
-        print "22222222222222222222222222", report_name, ids, context
         if context is None:
             context = {}
 
@@ -80,7 +79,6 @@ class Report(models.Model):
 
         # Get the ir.actions.report.xml record we are working on.
         report = self._get_report_from_name(cr, uid, report_name)
-        print "22211111111111111111!", report
         # Check if we have to save the report or if we have to get one from the db.
         save_in_attachment = self._check_attachment_use(cr, uid, ids, report)
         # Get the paperformat associated to the report, otherwise fallback on the company one.
@@ -251,7 +249,15 @@ class Report(models.Model):
                 if process.returncode not in [0, 1]:
                     raise UserError(_('Wkhtmltopdf failed (error code: %s). '
                                       'Message: %s') % (str(process.returncode), err))
-
+                if custom_report_background:
+                    temp_back_id, temp_back_path = tempfile.mkstemp(suffix='.pdf', prefix='back_report.tmp.')
+                    user = self.pool['res.users'].browse(cr, uid, uid)
+                    back_data = base64.decodestring(user.company_id.custom_report_background_image)
+                    with closing(os.fdopen(temp_back_id, 'w')) as back_file:
+                        back_file.write(back_data)
+                    os.system("pdftk "+ pdfreport_path + " background " +
+                              temp_back_path +"  output "+ pdfreport_path.replace('report', 'with_back_report'))
+                    pdfreport_path = pdfreport_path.replace('report', 'with_back_report')
                 # Save the pdf in attachment if marked
                 if reporthtml[0] is not False and save_in_attachment.get(reporthtml[0]):
                     with open(pdfreport_path, 'rb') as pdfreport:
@@ -270,15 +276,7 @@ class Report(models.Model):
                             _logger.info('The PDF document %s is now saved in the database',
                                          attachment['name'])
 
-                if custom_report_background:
-                    temp_back_id, temp_back_path = tempfile.mkstemp(suffix='.pdf', prefix='back_report.tmp.')
-                    user = self.pool['res.users'].browse(cr, uid, uid)
-                    back_data = base64.decodestring(user.company_id.custom_report_background_image)
-                    with closing(os.fdopen(temp_back_id, 'w')) as back_file:
-                        back_file.write(back_data)
-                    os.system("pdftk "+ pdfreport_path + " background " +
-                              temp_back_path +"  output "+ pdfreport_path.replace('report', 'with_back_report'))
-                    pdfreport_path = pdfreport_path.replace('report', 'with_back_report')
+
                 pdfdocuments.append(pdfreport_path)
             except:
                 raise
