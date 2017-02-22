@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-from openerp import models, fields, api
-from openerp import SUPERUSER_ID
-from openerp.exceptions import AccessError
-from openerp.sql_db import TestCursor
-from openerp.tools import config
-from openerp.tools.misc import find_in_path
-from openerp.tools.translate import _
-from openerp.addons.web.http import request
-from openerp.tools.safe_eval import safe_eval as eval
-from openerp.exceptions import UserError
+from odoo import models, fields, api
+from odoo import SUPERUSER_ID
+from odoo.exceptions import AccessError
+from odoo.sql_db import TestCursor
+from odoo.tools import config
+from odoo.tools.misc import find_in_path
+from odoo.tools.translate import _
+from odoo.http import request
+from odoo.tools.safe_eval import safe_eval as eval
+from odoo.exceptions import UserError
 
 import re
 import time
@@ -40,19 +40,24 @@ def _get_wkhtmltopdf_bin():
 
 
 class ir_actions_report_xml(models.Model):
-    _inherit = "ir.actions.report.xml"
+    _inherit = 'ir.actions.report.xml'
 
     custom_report_background = fields.Boolean(string='Custom Report Background')
 
 class Report(models.Model):
     _inherit = 'report'
 
-    @api.v7
-    def get_pdf(self, cr, uid, ids, report_name, html=None, data=None, context=None):
+    @api.model
+    def get_pdf(self, docids, report_name, html=None, data=None):
         """This method generates and returns pdf version of a report.
         """
-        if context is None:
-            context = {}
+
+        if self._check_wkhtmltopdf() == 'install':
+            # wkhtmltopdf is not installed
+            # the call should be catched before (cf /report/check_wkhtmltopdf) but
+            # if get_pdf is called manually (email template), the check could be
+            # bypassed
+            raise UserError(_("Unable to find Wkhtmltopdf on this system. The PDF can not be created."))
 
         # As the assets are generated during the same transaction as the rendering of the
         # templates calling them, there is a scenario where the assets are unreachable: when
@@ -62,28 +67,37 @@ class Report(models.Model):
         # This scenario happens when you want to print a PDF report for the first time, as the
         # assets are not in cache and must be generated. To workaround this issue, we manually
         # commit the writes in the `ir.attachment` table. It is done thanks to a key in the context.
+        context = dict(self.env.context)
         if not config['test_enable']:
-            context = dict(context, commit_assetsbundle=True)
+            context['commit_assetsbundle'] = True
+
+        # Disable the debug mode in the PDF rendering in order to not split the assets bundle
+        # into separated files to load. This is done because of an issue in wkhtmltopdf
+        # failing to load the CSS/Javascript resources in time.
+        # Without this, the header/footer of the reports randomly disapear
+        # because the resources files are not loaded in time.
+        # https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2083
+        context['debug'] = False
 
         if html is None:
-            html = self.get_html(cr, uid, ids, report_name, data=data, context=context)
+            html = self.with_context(context).get_html(docids, report_name, data=data)
 
         # The test cursor prevents the use of another environnment while the current
         # transaction is not finished, leading to a deadlock when the report requests
         # an asset bundle during the execution of test scenarios. In this case, return
         # the html version.
-        if isinstance(cr, TestCursor):
+        if isinstance(self.env.cr, TestCursor):
             return html
 
         html = html.decode('utf-8')  # Ensure the current document is utf-8 encoded.
 
         # Get the ir.actions.report.xml record we are working on.
-        report = self._get_report_from_name(cr, uid, report_name)
+        report = self._get_report_from_name(report_name)
         # Check if we have to save the report or if we have to get one from the db.
-        save_in_attachment = self._check_attachment_use(cr, uid, ids, report)
+        save_in_attachment = self._check_attachment_use(docids, report)
         # Get the paperformat associated to the report, otherwise fallback on the company one.
         if not report.paperformat_id:
-            user = self.pool['res.users'].browse(cr, uid, uid)
+            user = self.env['res.users'].browse(self.env.uid)  # Rebrowse to avoid sudo user from self.env.user
             paperformat = user.company_id.paperformat_id
         else:
             paperformat = report.paperformat_id
@@ -92,12 +106,12 @@ class Report(models.Model):
         headerhtml = []
         contenthtml = []
         footerhtml = []
-        irconfig_obj = self.pool['ir.config_parameter']
-        base_url = irconfig_obj.get_param(cr, SUPERUSER_ID, 'report.url') or irconfig_obj.get_param(cr, SUPERUSER_ID, 'web.base.url')
+        irconfig_obj = self.env['ir.config_parameter'].sudo()
+        base_url = irconfig_obj.get_param('report.url') or irconfig_obj.get_param('web.base.url')
 
         # Minimal page renderer
-        view_obj = self.pool['ir.ui.view']
-        render_minimal = partial(view_obj.render, cr, uid, 'report.minimal_layout', context=context)
+        view_obj = self.env['ir.ui.view']
+        render_minimal = partial(view_obj.with_context(context).render_template, 'report.minimal_layout')
 
         # The received html report must be simplified. We convert it in a xml tree
         # in order to extract headers, bodies and footers.
@@ -120,8 +134,8 @@ class Report(models.Model):
                 # must set a relation between report ids and report's content. We use the QWeb
                 # branding in order to do so: searching after a node having a data-oe-model
                 # attribute with the value of the current report model and read its oe-id attribute
-                if ids and len(ids) == 1:
-                    reportid = ids[0]
+                if docids and len(docids) == 1:
+                    reportid = docids[0]
                 else:
                     oemodelnode = node.find(".//*[@data-oe-model='%s']" % report.model)
                     if oemodelnode is not None:
@@ -151,11 +165,13 @@ class Report(models.Model):
 
         # Run wkhtmltopdf process
         return self._run_wkhtmltopdf(
-            cr, uid, headerhtml, footerhtml, contenthtml, context.get('landscape'),
+            headerhtml, footerhtml, contenthtml, context.get('landscape'),
             paperformat, specific_paperformat_args, save_in_attachment,
             context.get('set_viewport_size'), report.custom_report_background
         )
-    def _run_wkhtmltopdf(self, cr, uid, headers, footers, bodies, landscape,
+
+    @api.model
+    def _run_wkhtmltopdf(self, headers, footers, bodies, landscape,
                          paperformat, spec_paperformat_args=None,
                          save_in_attachment=None, set_viewport_size=False,
                          custom_report_background=False):
@@ -249,15 +265,17 @@ class Report(models.Model):
                 if process.returncode not in [0, 1]:
                     raise UserError(_('Wkhtmltopdf failed (error code: %s). '
                                       'Message: %s') % (str(process.returncode), err))
+
                 if custom_report_background:
                     temp_back_id, temp_back_path = tempfile.mkstemp(suffix='.pdf', prefix='back_report.tmp.')
-                    user = self.pool['res.users'].browse(cr, uid, uid)
+                    user = self.env['res.users'].browse(self.env.uid)
                     back_data = base64.decodestring(user.company_id.custom_report_background_image)
                     with closing(os.fdopen(temp_back_id, 'w')) as back_file:
                         back_file.write(back_data)
                     os.system("pdftk "+ pdfreport_path + " background " +
                               temp_back_path +"  output "+ pdfreport_path.replace('report', 'with_back_report'))
                     pdfreport_path = pdfreport_path.replace('report', 'with_back_report')
+
                 # Save the pdf in attachment if marked
                 if reporthtml[0] is not False and save_in_attachment.get(reporthtml[0]):
                     with open(pdfreport_path, 'rb') as pdfreport:
@@ -269,13 +287,12 @@ class Report(models.Model):
                             'res_id': reporthtml[0],
                         }
                         try:
-                            self.pool['ir.attachment'].create(cr, uid, attachment)
+                            self.env['ir.attachment'].create(attachment)
                         except AccessError:
                             _logger.info("Cannot save PDF report %r as attachment", attachment['name'])
                         else:
                             _logger.info('The PDF document %s is now saved in the database',
                                          attachment['name'])
-
 
                 pdfdocuments.append(pdfreport_path)
             except:

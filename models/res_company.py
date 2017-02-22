@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # See LICENSE file for full copyright and licensing details.
-from openerp import fields, models
+from odoo import fields, models
 
 
 class res_company(models.Model):
