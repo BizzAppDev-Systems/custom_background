@@ -1,19 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <odoo>
     <data>
-
         <record id="view_ir_action_inherit_form" model="ir.ui.view">
-            <field name="name">ir.actions.report.xml.form</field>
-            <field name="model">ir.actions.report.xml</field>
+            <field name="name">ir.actions.report.form</field>
+            <field name="model">ir.actions.report</field>
             <field name="type">form</field>
             <field name="inherit_id" ref="base.act_report_xml_view"/>
             <field name="arch" type="xml">
-                <xpath expr="//form//field[@name='report_type']" position="after">
+                <xpath expr="//form/sheet/group/group/field[@name='report_type']" position="after">
                     <field name="custom_report_background" select="1"/>
                 </xpath>
             </field>
         </record>
-
     </data>
 </odoo>

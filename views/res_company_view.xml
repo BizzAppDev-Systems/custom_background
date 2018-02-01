@@ -6,7 +6,7 @@
             <field name="model">res.company</field>
             <field name="inherit_id" ref="base.view_company_form"/>
             <field name="arch" type="xml">
-                <xpath expr="//form//notebook" position="inside">
+                <xpath expr="//form/sheet/notebook" position="inside">
                     <page name="configuration" string="Configuration">
                         <group>
                             <separator string="Custom Background Image" colspan="2"/>

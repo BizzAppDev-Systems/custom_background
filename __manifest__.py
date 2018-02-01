@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Custom Background",
-    "version": "0.1",
+    "version": "1.0",
     "author": "BizzAppDev",
     "website": "http://www.bizzappdev.com",
     "category": "GenericModules",
-    "depends": ["base", 'report'],
+    "depends": ["base"],
     "summary": "Custom  Background",
     "description": """
     """,
     'images': [],
     "init_xml": [],
     "data": [
-        "view/ir_actions.xml",
-        "view/res_company_view.xml",
+        "views/ir_actions.xml",
+        "views/res_company_view.xml",
     ],
     'demo_xml': [
     ],

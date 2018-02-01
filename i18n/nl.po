@@ -1,0 +1,49 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+#	* custom_background
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 11.0+e\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-01-31 07:09+0000\n"
+"PO-Revision-Date: 2018-01-31 07:09+0000\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: custom_background
+#: model:ir.model,name:custom_background.model_res_company
+msgid "Companies"
+msgstr "Bedrijven"
+
+#. module: custom_background
+#: model:ir.ui.view,arch_db:custom_background.res_company_view_inherit
+msgid "Configuration"
+msgstr "Configuratie"
+
+#. module: custom_background
+#: model:ir.ui.view,arch_db:custom_background.res_company_view_inherit
+msgid "Custom Background Image"
+msgstr "Custom Background Image"
+
+#. module: custom_background
+#: model:ir.model.fields,field_description:custom_background.field_ir_act_report_xml_custom_report_background
+#: model:ir.model.fields,field_description:custom_background.field_res_company_custom_report_background_image
+msgid "Custom Report Background"
+msgstr "Custom Report Background"
+
+#. module: custom_background
+#: code:addons/custom_background/models/report.py:111
+#, python-format
+msgid "Wkhtmltopdf failed (error code: %s). Message: %s"
+msgstr "Wkhtmltopdf failed (error code: %s). Message: %s"
+
+#. module: custom_background
+#: model:ir.model,name:custom_background.model_ir_actions_report
+msgid "ir.actions.report"
+msgstr "ir.actions.report"
+
