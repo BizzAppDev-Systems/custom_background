@@ -23,6 +23,7 @@ from distutils.version import LooseVersion
 from functools import partial
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from reportlab.graphics.barcode import createBarcodeDrawing
+from odoo.addons.base.ir.ir_actions_report import _get_wkhtmltopdf_bin
 
 try:
     createBarcodeDrawing('Code128', value='foo', format='png', width=100, height=100, humanReadable=1).asString('png')
@@ -108,8 +109,11 @@ class ir_actions_report_xml(models.Model):
             out, err = process.communicate()
 
             if process.returncode not in [0, 1]:
-                raise UserError(_('Wkhtmltopdf failed (error code: %s). '
-                                      'Message: %s') % (str(process.returncode), err))
+                message = _(
+                        'Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file number of subprocess reached. Message : %s')
+                else:
+                    message = _('Wkhtmltopdf failed (error code: %s). Message: %s')
+                raise UserError(message % (str(process.returncode), err[-1000:]))
 
             if self.custom_report_background:
                     temp_back_id, temp_back_path = tempfile.mkstemp(suffix='.pdf', prefix='back_report.tmp.')
