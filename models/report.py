@@ -23,7 +23,6 @@ from distutils.version import LooseVersion
 from functools import partial
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from reportlab.graphics.barcode import createBarcodeDrawing
-from odoo.addons.base.ir.ir_actions_report import _get_wkhtmltopdf_bin
 
 try:
     createBarcodeDrawing('Code128', value='foo', format='png', width=100, height=100, humanReadable=1).asString('png')
@@ -109,11 +108,8 @@ class ir_actions_report_xml(models.Model):
             out, err = process.communicate()
 
             if process.returncode not in [0, 1]:
-                message = _(
-                        'Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file number of subprocess reached. Message : %s')
-                else:
-                    message = _('Wkhtmltopdf failed (error code: %s). Message: %s')
-                raise UserError(message % (str(process.returncode), err[-1000:]))
+                raise UserError(_('Wkhtmltopdf failed (error code: %s). '
+                                      'Message: %s') % (str(process.returncode), err))
 
             if self.custom_report_background:
                     temp_back_id, temp_back_path = tempfile.mkstemp(suffix='.pdf', prefix='back_report.tmp.')
@@ -121,14 +117,17 @@ class ir_actions_report_xml(models.Model):
                     back_data = base64.decodestring(user.company_id.custom_report_background_image)
                     with closing(os.fdopen(temp_back_id, 'wb')) as back_file:
                         back_file.write(back_data)
-                    os.system("pdftk "+ pdf_report_path + " background " +
-                              temp_back_path +"  output "+ pdf_report_path.replace('report', 'with_back_report'))
+                    subprocess.call("pdftk "+ pdf_report_path + " background " +
+                              temp_back_path +"  output "+ pdf_report_path.replace('report', 'with_back_report'), shell=True)
                     pdf_report_path = pdf_report_path.replace('report', 'with_back_report')
         except:
             raise
 
-        with open(pdf_report_path, 'rb') as pdf_document:
-            pdf_content = pdf_document.read()
+        try:
+            with open(pdf_report_path, 'rb') as pdf_document:
+                pdf_content = pdf_document.read()
+        except:
+            raise UserError(_('You have not installed the pdftk package yet. Please install it with the command pip3 install pdftk'))
 
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:

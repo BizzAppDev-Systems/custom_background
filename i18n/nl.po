@@ -47,3 +47,8 @@ msgstr "Wkhtmltopdf failed (error code: %s). Message: %s"
 msgid "ir.actions.report"
 msgstr "ir.actions.report"
 
+#. module: custom_background
+#: code:addons/custom_background/models/report.py:129
+#, python-format
+msgid "You have not installed the pdftk package yet. Please install it with the command pip3 install pdftk"
+msgstr "You have not installed the pdftk package yet. Please install it with the command pip3 install pdftk"
