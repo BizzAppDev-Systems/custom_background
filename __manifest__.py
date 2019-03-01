@@ -17,16 +17,13 @@
     ],
     'demo_xml': [
     ],
-    'test':[
+    'test': [
     ],
     'installable': True,
     'active': False,
     'auto_install': False,
     'application': False,
     'license': 'Other proprietary',
-    'external_dependencies' : {
-        'bin' : ['pdftk'],
-    }
 
 }
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
