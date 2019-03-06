@@ -111,10 +111,11 @@ class ir_actions_report_xml(models.Model):
                                           str(process.returncode), err))
 
             if self.custom_report_background:
-                    temp_back_id, temp_back_path = tempfile.mkstemp(
-                        suffix='.pdf', prefix='back_report.tmp.'
-                    )
-                    user = self.env['res.users'].browse(self.env.uid)
+                temp_back_id, temp_back_path = tempfile.mkstemp(
+                    suffix='.pdf', prefix='back_report.tmp.'
+                )
+                user = self.env['res.users'].browse(self.env.uid)
+                if user and user.company_id.custom_report_background_image:
                     back_data = base64.decodestring(
                         user.company_id.custom_report_background_image
                     )
