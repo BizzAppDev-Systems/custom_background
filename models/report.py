@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import models, fields, api
 from odoo.tools.misc import find_in_path
 from odoo.tools.translate import _
@@ -30,7 +29,7 @@ def _get_wkhtmltopdf_bin():
     return find_in_path('wkhtmltopdf')
 
 
-class ir_actions_report_xml(models.Model):
+class IrActionsReportXml(models.Model):
     _inherit = 'ir.actions.report'
 
     custom_report_background = fields.Boolean(
@@ -152,4 +151,3 @@ class ir_actions_report_xml(models.Model):
 
         return pdf_content
 
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
