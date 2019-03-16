@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 11.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-01-31 07:09+0000\n"
-"PO-Revision-Date: 2018-01-31 07:09+0000\n"
+"POT-Creation-Date: 2019-03-16 04:52+0000\n"
+"PO-Revision-Date: 2019-03-16 04:52+0000\n"
 "Last-Translator: <>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -37,18 +37,13 @@ msgid "Custom Report Background"
 msgstr "Custom Report Background"
 
 #. module: custom_background
-#: code:addons/custom_background/models/report.py:111
+#: code:addons/custom_background/models/report.py:108
 #, python-format
-msgid "Wkhtmltopdf failed (error code: %s). Message: %s"
-msgstr "Wkhtmltopdf failed (error code: %s). Message: %s"
+msgid "Wkhtmltopdf failed (error code: %s).                                   Message: %s"
+msgstr "Wkhtmltopdf failed (error code: %s).                                   Message: %s"
 
 #. module: custom_background
 #: model:ir.model,name:custom_background.model_ir_actions_report
 msgid "ir.actions.report"
 msgstr "ir.actions.report"
 
-#. module: custom_background
-#: code:addons/custom_background/models/report.py:129
-#, python-format
-msgid "You have not installed the pdftk package yet. Please install it with the command pip3 install pdftk"
-msgstr "You have not installed the pdftk package yet. Please install it with the command pip3 install pdftk"
