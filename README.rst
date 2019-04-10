@@ -1,7 +1,7 @@
 Installation
 ============
 
-For testing it is also necessary ``pdftk`` app installed:
+Now we are not using with pdftk packages
 
 Ubuntu ::
 
