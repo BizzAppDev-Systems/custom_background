@@ -1,6 +1,6 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-#	* custom_background
+#   * custom_background
 #
 msgid ""
 msgstr ""

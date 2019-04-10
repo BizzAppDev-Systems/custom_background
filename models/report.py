@@ -148,6 +148,4 @@ class IrActionsReportXml(models.Model):
             except (OSError, IOError):
                 _logger.error(
                     'Error when trying to remove file %s' % temporary_file)
-
         return pdf_content
-
