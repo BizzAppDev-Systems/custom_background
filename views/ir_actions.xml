@@ -9,6 +9,11 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='report_type']" position="after">
                     <field name="custom_report_background" select="1"/>
+                    <field name="custom_report_type" attrs="{'invisible':
+                        [('custom_report_background', '!=', True)]}"/>
+                    <field name="custom_report_background_image"
+                        attrs="{'invisible': ['|', ('custom_report_type','!=',
+                        'report'), ('custom_report_background', '!=', True)]}"/>
                 </xpath>
             </field>
         </record>

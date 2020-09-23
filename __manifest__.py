@@ -4,7 +4,7 @@
     "author": "BizzAppDev",
     "website": "http://www.bizzappdev.com",
     "category": "GenericModules",
-    "depends": ["base"],
+    "depends": ["base", "web"],
     "summary": "Custom  Background",
     "description": """
     """,
@@ -13,6 +13,7 @@
     "data": [
         "views/ir_actions.xml",
         "views/res_company_view.xml",
+        "views/report_template.xml",
     ],
     'demo_xml': [
     ],

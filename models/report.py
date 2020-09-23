@@ -39,6 +39,10 @@ class ir_actions_report_xml(models.Model):
 
     custom_report_background = fields.Boolean(
         string='Custom Report Background')
+    custom_report_background_image = fields.Binary(
+        string="Background Image")
+    custom_report_type = fields.Selection([('company', 'From Company'),
+                                           ('report', 'From Report')])
 
     @api.model
     def _run_wkhtmltopdf(self,
@@ -62,7 +66,8 @@ class ir_actions_report_xml(models.Model):
                                 '1280x1024' depending of landscape arg.
         :return: Content of the pdf as a string
         """
-        paperformat_id = self.paperformat_id or self.env.user.company_id.paperformat_id
+        paperformat_id = (self.paperformat_id or
+                          self.env.user.company_id.paperformat_id)
 
         # Build the base command args for wkhtmltopdf bin
         command_args = self._build_wkhtmltopdf_args(
@@ -108,7 +113,7 @@ class ir_actions_report_xml(models.Model):
         temporary_files.append(pdf_report_path)
         try:
             wkhtmltopdf = [_get_wkhtmltopdf_bin()] + command_args +\
-                    files_command_args + paths + [pdf_report_path]
+                files_command_args + paths + [pdf_report_path]
             process = subprocess.Popen(
                 wkhtmltopdf,
                 stdout=subprocess.PIPE,
@@ -120,15 +125,28 @@ class ir_actions_report_xml(models.Model):
                 raise UserError(_('Wkhtmltopdf failed (error code: %s). '
                                   'Message: %s') %
                                 (str(process.returncode), err))
+
             if self.custom_report_background:
                 temp_back_id, temp_back_path = tempfile.mkstemp(
                     suffix='.pdf',
                     prefix='back_report.tmp.'
                 )
-                user = self.env['res.users'].browse(self.env.uid)
-                if user and user.company_id.custom_report_background_image:
-                    back_data = base64.decodestring(
+
+                user = self.env['res.users'].sudo().browse(
+                    self._context.get('uid', self.env.uid))
+                custom_background = False
+                if (self and self.custom_report_background and
+                        self.custom_report_type == 'report'):
+                    custom_background = self.custom_report_background_image
+                if (self.custom_report_background and not custom_background and
+                        (self.custom_report_type == 'company' or not
+                         self.custom_report_type) and user
+                        and user.company_id.custom_report_background_image):
+                    custom_background = (
                         user.company_id.custom_report_background_image)
+
+                if custom_background:
+                    back_data = base64.decodestring(custom_background)
                     with closing(os.fdopen(temp_back_id, 'wb')) as back_file:
                         back_file.write(back_data)
                     temp_report_id, temp_report_path = tempfile.mkstemp(
@@ -137,16 +155,19 @@ class ir_actions_report_xml(models.Model):
                     )
                     output = PdfFileWriter()
                     pdf_reader_content = PdfFileReader(pdf_report_path, 'rb')
-                    pdf_reader_watermark = PdfFileReader(temp_back_path, 'rb')
+
                     for i in range(pdf_reader_content.getNumPages()):
                         page = pdf_reader_content.getPage(i)
+                        pdf_reader_watermark = PdfFileReader(
+                            temp_back_path, 'rb')
                         watermark = pdf_reader_watermark.getPage(0)
-                        page.mergePage(watermark)
-                        output.addPage(page)
+                        watermark.mergePage(page)
+                        output.addPage(watermark)
                     output.write(open(temp_report_path, 'wb'))
                     pdf_report_path = temp_report_path
                     os.close(temp_report_id)
-        except:
+        except Exception as ex:
+            logging.info("Error while PDF Background %s" % ex)
             raise
 
         with open(pdf_report_path, 'rb') as pdf_document:

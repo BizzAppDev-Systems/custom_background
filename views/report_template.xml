@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <template id="external_layout_standard_inherit" inherit_id="web.external_layout_standard">
+        <xpath expr="//div[hasclass('header')]" position="replace"/>
+        <xpath expr="//div[hasclass('footer')]" position="replace"/>
+        <xpath expr="//div[hasclass('o_report_layout_standard')]/t" position="after">
+            <style>
+                body {
+                    background-color: transparent !important
+                }
+            </style>
+        </xpath>
+    </template>
+
+</odoo>
