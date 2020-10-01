@@ -1,7 +1,7 @@
 Installation
 ============
 
-For testing it it is also necessary to have the ``pypdf2`` app installed:
+For testing it is also necessary to have the ``pypdf2`` app installed:
 
 Ubuntu ::
 
