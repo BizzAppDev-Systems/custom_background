@@ -1,17 +1,18 @@
 # See LICENSE file for full copyright and licensing details.
-from odoo import models, fields, api
-from odoo.tools.misc import find_in_path
-from odoo.tools.translate import _
-from odoo.exceptions import UserError
-
 import base64
 import logging
-import tempfile
 import os
 import subprocess
+import tempfile
 from contextlib import closing
-from PyPDF2 import PdfFileWriter, PdfFileReader
+
+from PyPDF2 import PdfFileReader, PdfFileWriter
 from reportlab.graphics.barcode import createBarcodeDrawing
+
+from odoo import api, fields, models
+from odoo.exceptions import UserError
+from odoo.tools.misc import find_in_path
+from odoo.tools.translate import _
 
 try:
     createBarcodeDrawing(
@@ -47,13 +48,13 @@ class IrActionsReport(models.Model):
         [("company", "From Company"), ("report", "From Report")]
     )
 
-    def render_qweb_pdf(self, res_ids=None, data=None):
+    def _render_qweb_pdf(self, res_ids=None, data=None):
         Model = self.env[self.model]
         record_ids = Model.browse(res_ids)
         return super(
             IrActionsReport,
             self.with_context(background_company=record_ids[:1].company_id),
-        ).render_qweb_pdf(res_ids=res_ids, data=data)
+        )._render_qweb_pdf(res_ids=res_ids, data=data)
 
     @api.model
     def _run_wkhtmltopdf(
@@ -143,15 +144,19 @@ class IrActionsReport(models.Model):
             if process.returncode not in [0, 1]:
                 if process.returncode == -11:
                     message = _(
-                        'Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file number of subprocess reached. Message : %s')
+                        "Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file number of subprocess reached. Message : %s"
+                    )
                 else:
-                    message = _('Wkhtmltopdf failed (error code: %s). Message: %s')
+                    message = _(
+                        "Wkhtmltopdf failed (error code: %s). Message: %s"
+                    )
                 _logger.warning(message, process.returncode, err[-1000:])
-                raise UserError(message % (str(process.returncode), err[-1000:]))
+                raise UserError(
+                    message % (str(process.returncode), err[-1000:])
+                )
             else:
                 if err:
-                    _logger.warning('wkhtmltopdf: %s' % err)
-
+                    _logger.warning("wkhtmltopdf: %s" % err)
             if self.custom_report_background:
                 temp_back_id, temp_back_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="back_report.tmp."
@@ -178,9 +183,8 @@ class IrActionsReport(models.Model):
                     custom_background = self._context.get(
                         "background_company"
                     ).custom_report_background_image
-
                 if custom_background:
-                    back_data = base64.decodestring(custom_background)
+                    back_data = base64.b64decode(custom_background)
                     with closing(os.fdopen(temp_back_id, "wb")) as back_file:
                         back_file.write(back_data)
                     temp_report_id, temp_report_path = tempfile.mkstemp(
