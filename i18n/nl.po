@@ -4,16 +4,23 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0\n"
+"Project-Id-Version: Odoo Server 14.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-27 06:56+0000\n"
-"PO-Revision-Date: 2019-11-27 06:56+0000\n"
-"Last-Translator: \n"
+"POT-Creation-Date: 2020-10-29 09:08+0000\n"
+"PO-Revision-Date: 2020-11-01 11:38+0100\n"
+"Last-Translator: Erwin van der Ploeg <erwin@odooexperts.nl>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: \n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: \n"
+"Language: nl\n"
+"X-Generator: Poedit 2.3\n"
+
+#. module: custom_background
+#: model:ir.model.fields,field_description:custom_background.field_ir_actions_report__custom_report_background_image
+msgid "Background Image"
+msgstr "Achtergrondafbeelding"
 
 #. module: custom_background
 #: model:ir.model,name:custom_background.model_res_company
@@ -28,29 +35,24 @@ msgstr "Instellingen"
 #. module: custom_background
 #: model_terms:ir.ui.view,arch_db:custom_background.res_company_view_inherit
 msgid "Custom Background Image"
-msgstr "Achtergrond afbeelding"
+msgstr "Achtergrondafbeelding"
 
 #. module: custom_background
 #: model:ir.model.fields,field_description:custom_background.field_ir_actions_report__custom_report_background
 #: model:ir.model.fields,field_description:custom_background.field_res_company__custom_report_background_image
 msgid "Custom Report Background"
-msgstr "Achtergrond afbeelding layouts"
+msgstr "Achtergrondafbeelding layouts"
 
 #. module: custom_background
-#: model:ir.model,name:custom_background.model_ir_actions_report
-msgid "Report Action"
-msgstr "Rapport actie"
+#: model:ir.model.fields,field_description:custom_background.field_ir_actions_report__custom_report_type
+msgid "Custom Report Type"
+msgstr "Afwijkende achtergrond"
 
 #. module: custom_background
-#: code:addons/custom_background/models/report.py:0
-#, python-format
-msgid "Wkhtmltopdf failed (error code: %s). Message: %s"
-msgstr ""
-
-#. module: custom_background
-#: model:ir.model.fields,field_description:custom_background.field_ir_actions_report__custom_report_background_image
-msgid "Background Image"
-msgstr "Achtergrondafbeelding"
+#: model:ir.model.fields,field_description:custom_background.field_ir_actions_report__display_name
+#: model:ir.model.fields,field_description:custom_background.field_res_company__display_name
+msgid "Display Name"
+msgstr "Schermnaam"
 
 #. module: custom_background
 #: model:ir.model.fields.selection,name:custom_background.selection__ir_actions_report__custom_report_type__company
@@ -63,6 +65,34 @@ msgid "From Report"
 msgstr "Van rapport"
 
 #. module: custom_background
-#: model:ir.model.fields,field_description:custom_background.field_ir_actions_report__custom_report_type
-msgid "Custom Report Type"
-msgstr "Afwijkende achtergrond"
+#: model:ir.model.fields,field_description:custom_background.field_ir_actions_report__id
+#: model:ir.model.fields,field_description:custom_background.field_res_company__id
+msgid "ID"
+msgstr ""
+
+#. module: custom_background
+#: model:ir.model.fields,field_description:custom_background.field_ir_actions_report____last_update
+#: model:ir.model.fields,field_description:custom_background.field_res_company____last_update
+msgid "Last Modified on"
+msgstr "Laatst gewijzigd op"
+
+#. module: custom_background
+#: model:ir.model,name:custom_background.model_ir_actions_report
+msgid "Report Action"
+msgstr "Rapport actie"
+
+#. module: custom_background
+#: code:addons/custom_background/models/report.py:0
+#, python-format
+msgid ""
+"Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file "
+"number of subprocess reached. Message : %s"
+msgstr ""
+"Wkhtmltopdf fout (fout code: %s). Geheugenlimiet te laag of maximale "
+"bestandsnummer van subproces bereikt. Bericht:%s"
+
+#. module: custom_background
+#: code:addons/custom_background/models/report.py:0
+#, python-format
+msgid "Wkhtmltopdf failed (error code: %s). Message: %s"
+msgstr "Wkhtmltopdf fout (error code: %s). Bericht: %s"
