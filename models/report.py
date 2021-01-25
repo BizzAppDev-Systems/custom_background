@@ -16,12 +16,7 @@ from odoo.tools.translate import _
 
 try:
     createBarcodeDrawing(
-        "Code128",
-        value="foo",
-        format="png",
-        width=100,
-        height=100,
-        humanReadable=1,
+        "Code128", value="foo", format="png", width=100, height=100, humanReadable=1
     ).asString("png")
 except Exception:
     pass
@@ -40,9 +35,7 @@ def _get_wkhtmltopdf_bin():
 class IrActionsReport(models.Model):
     _inherit = "ir.actions.report"
 
-    custom_report_background = fields.Boolean(
-        string="Custom Report Background"
-    )
+    custom_report_background = fields.Boolean(string="Custom Report Background")
     custom_report_background_image = fields.Binary(string="Background Image")
     custom_report_type = fields.Selection(
         [("company", "From Company"), ("report", "From Report")]
@@ -51,9 +44,13 @@ class IrActionsReport(models.Model):
     def _render_qweb_pdf(self, res_ids=None, data=None):
         Model = self.env[self.model]
         record_ids = Model.browse(res_ids)
+        company_id = False
+        if self.model == "res.company":
+            company_id = record_ids[:1]
+        else:
+            company_id = record_ids[:1].company_id
         return super(
-            IrActionsReport,
-            self.with_context(background_company=record_ids[:1].company_id),
+            IrActionsReport, self.with_context(background_company=company_id)
         )._render_qweb_pdf(res_ids=res_ids, data=data)
 
     @api.model
@@ -147,13 +144,9 @@ class IrActionsReport(models.Model):
                         "Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file number of subprocess reached. Message : %s"
                     )
                 else:
-                    message = _(
-                        "Wkhtmltopdf failed (error code: %s). Message: %s"
-                    )
+                    message = _("Wkhtmltopdf failed (error code: %s). Message: %s")
                 _logger.warning(message, process.returncode, err[-1000:])
-                raise UserError(
-                    message % (str(process.returncode), err[-1000:])
-                )
+                raise UserError(message % (str(process.returncode), err[-1000:]))
             else:
                 if err:
                     _logger.warning("wkhtmltopdf: %s" % err)
@@ -195,9 +188,7 @@ class IrActionsReport(models.Model):
 
                     for i in range(pdf_reader_content.getNumPages()):
                         page = pdf_reader_content.getPage(i)
-                        pdf_reader_watermark = PdfFileReader(
-                            temp_back_path, "rb"
-                        )
+                        pdf_reader_watermark = PdfFileReader(temp_back_path, "rb")
                         watermark = pdf_reader_watermark.getPage(0)
                         watermark.mergePage(page)
                         output.addPage(watermark)
@@ -216,8 +207,6 @@ class IrActionsReport(models.Model):
             try:
                 os.unlink(temporary_file)
             except (OSError, IOError):
-                _logger.error(
-                    "Error when trying to remove file %s" % temporary_file
-                )
+                _logger.error("Error when trying to remove file %s" % temporary_file)
 
         return pdf_content
