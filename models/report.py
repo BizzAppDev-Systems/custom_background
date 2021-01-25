@@ -45,7 +45,7 @@ class IrActionsReport(models.Model):
         Model = self.env[self.model]
         record_ids = Model.browse(res_ids)
         company_id = False
-        if hasattr(record_ids[:1], 'company_id'):
+        if hasattr(record_ids[:1], "company_id"):
             company_id = record_ids[:1].company_id
         return super(
             IrActionsReport, self.with_context(background_company=company_id)
