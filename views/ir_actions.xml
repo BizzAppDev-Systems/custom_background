@@ -15,6 +15,12 @@
                         attrs="{'invisible': ['|', ('custom_report_type','!=',
                         'report'), ('custom_report_background', '!=', True)]}"/>
                 </xpath>
+                <xpath expr="//notebook" position="inside">
+                    <page string="Background Configuration" attrs="{'invisible':
+                        [('custom_report_type','!=', 'dynamic')]}">
+                        <field name="background_ids" />
+                    </page>
+                </xpath>
             </field>
         </record>
     </data>

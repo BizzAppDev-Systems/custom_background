@@ -32,13 +32,37 @@ def _get_wkhtmltopdf_bin():
     return find_in_path("wkhtmltopdf")
 
 
+class ReportBackgroundLine(models.Model):
+    _name = "report.background.line"
+
+    page_number = fields.Char()
+    type = fields.Selection(
+        [
+            ("fixed", "Fixed Page"),
+            ("expression", "Expression"),
+            ("first_page", "First Page"),
+            ("last_page", "Last Page"),
+            ("remaining", "Remaning Pages"),
+        ]
+    )
+    background_pdf = fields.Binary(string="Background PDF")
+
+
 class IrActionsReport(models.Model):
     _inherit = "ir.actions.report"
 
     custom_report_background = fields.Boolean(string="Custom Report Background")
     custom_report_background_image = fields.Binary(string="Background Image")
     custom_report_type = fields.Selection(
-        [("company", "From Company"), ("report", "From Report")]
+        [
+            ("company", "From Company"),
+            ("report", "From Report Fixed"),
+            ("dynamic", "From Report Dynamic"),
+        ]
+    )
+
+    background_ids = fields.One2many(
+        "report.background.line", "report_id", "Background Configuration"
     )
 
     def _render_qweb_pdf(self, res_ids=None, data=None):
