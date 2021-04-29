@@ -53,6 +53,7 @@ class ReportBackgroundLine(models.Model):
     )
     background_pdf = fields.Binary(string="Background PDF")
     report_id = fields.Many2one("ir.actions.report", string="Report")
+    page_expression = fields.Char()
 
 
 class IrActionsReport(models.Model):
@@ -210,66 +211,49 @@ class IrActionsReport(models.Model):
                 output = PdfFileWriter()
                 pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
                 first_page = self.background_ids.search(
-                    [("type", "=", "first_page")],
+                    [("type", "=", "first_page"), ("report_id", "=", self.id)],
                     limit=1,
                 )
                 last_page = self.background_ids.search(
-                    [("type", "=", "last_page")],
+                    [("type", "=", "last_page"), ("report_id", "=", self.id)],
                     limit=1,
                 )
                 fixed_pages = self.background_ids.search(
-                    [("type", "=", "fixed")]
+                    [("type", "=", "fixed"), ("report_id", "=", self.id)]
                 )
                 remaining_pages = self.background_ids.search(
-                    [("type", "=", "remaining")],
+                    [("type", "=", "remaining"), ("report_id", "=", self.id)],
                     limit=1,
                 )
                 for i in range(pdf_reader_content.getNumPages()):
-                    print(
-                        "\n i : ",
-                        i,
-                        first_page,
-                        last_page,
-                        fixed_pages.mapped("page_number"),
-                    )
+                    watermark = ""
                     if first_page and fixed_pages.background_pdf and i == 0:
-                        page = self.add_pdf_watermarks(
-                            first_page.background_pdf,
-                            pdf_reader_content.getPage(i),
-                        )
-                        output.addPage(page)
+                        watermark = first_page.background_pdf
                     elif (
                         last_page
                         and last_page.background_pdf
                         and i == pdf_reader_content.getNumPages() - 1
                     ):
-                        page = self.add_pdf_watermarks(
-                            last_page.background_pdf,
-                            pdf_reader_content.getPage(i),
-                        )
-                        output.addPage(page)
+                        watermark = last_page.background_pdf
                     elif i in fixed_pages.mapped("page_number"):
                         fixed_page = fixed_pages.search(
-                            [("page_number", "=", i)],
-                            limit=1,
+                            [
+                                ("page_number", "=", i),
+                                ("report_id", "=", self.id)
+                            ], limit=1,
                         )
                         if fixed_page and fixed_page.background_pdf:
-                            page = self.add_pdf_watermarks(
-                                fixed_page.background_pdf,
-                                pdf_reader_content.getPage(i),
-                            )
-                        else:
-                            page = pdf_reader_content.getPage(i)
-                        output.addPage(page)
+                            watermark = fixed_page.background_pdf
                     else:
                         if remaining_pages and remaining_pages.background_pdf:
-                            page = self.add_pdf_watermarks(
-                                remaining_pages.background_pdf,
-                                pdf_reader_content.getPage(i),
-                            )
-                        else:
-                            page = pdf_reader_content.getPage(i)
-                        output.addPage(page)
+                            watermark = remaining_pages.background_pdf
+                    if watermark:
+                        page = self.add_pdf_watermarks(
+                            watermark, pdf_reader_content.getPage(i),
+                        )
+                    else:
+                        page = pdf_reader_content.getPage(i)
+                    output.addPage(page)
                 output.write(open(temp_report_path, "wb"))
                 pdf_report_path = temp_report_path
                 os.close(temp_report_id)

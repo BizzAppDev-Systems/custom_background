@@ -25,7 +25,9 @@
                                         <group>
                                             <field name="type" />
                                             <field name="page_number"
-                                                attrs="{'invisible': [('type', 'in', ['first_page', 'last_page', 'remaining'])]}" />
+                                                attrs="{'invisible': [('type', '!=', 'fixed')]}" />
+                                            <field name="page_expression"
+                                                attrs="{'invisible': [('type', '!=', 'expression')]}" />
                                         </group>
                                         <group>
                                             <field name="background_pdf" />
@@ -36,7 +38,8 @@
                             </form>
                             <tree>
                                 <field name="type" />
-                                <field name="page_number" />
+                                <field name="page_number" invisible="1" />
+                                <field name="page_expression" invisible="1" />
                                 <field name="background_pdf" />
                                 <field name="report_id" invisible="1" />
                             </tree>
