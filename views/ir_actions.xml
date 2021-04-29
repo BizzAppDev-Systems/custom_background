@@ -18,7 +18,29 @@
                 <xpath expr="//notebook" position="inside">
                     <page string="Background Configuration" attrs="{'invisible':
                         [('custom_report_type','!=', 'dynamic')]}">
-                        <field name="background_ids" />
+                        <field name="background_ids">
+                            <form>
+                                <sheet>
+                                    <group>
+                                        <group>
+                                            <field name="type" />
+                                            <field name="page_number"
+                                                attrs="{'invisible': [('type', 'in', ['first_page', 'last_page', 'remaining'])]}" />
+                                        </group>
+                                        <group>
+                                            <field name="background_pdf" />
+                                            <field name="report_id" invisible="1" />
+                                        </group>
+                                    </group>
+                                </sheet>
+                            </form>
+                            <tree>
+                                <field name="type" />
+                                <field name="page_number" />
+                                <field name="background_pdf" />
+                                <field name="report_id" invisible="1" />
+                            </tree>
+                        </field>
                     </page>
                 </xpath>
             </field>

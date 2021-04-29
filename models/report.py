@@ -16,7 +16,12 @@ from odoo.tools.translate import _
 
 try:
     createBarcodeDrawing(
-        "Code128", value="foo", format="png", width=100, height=100, humanReadable=1
+        "Code128",
+        value="foo",
+        format="png",
+        width=100,
+        height=100,
+        humanReadable=1,
     ).asString("png")
 except Exception:
     pass
@@ -34,8 +39,9 @@ def _get_wkhtmltopdf_bin():
 
 class ReportBackgroundLine(models.Model):
     _name = "report.background.line"
+    _description = "Report Background Line"
 
-    page_number = fields.Char()
+    page_number = fields.Integer()
     type = fields.Selection(
         [
             ("fixed", "Fixed Page"),
@@ -46,12 +52,15 @@ class ReportBackgroundLine(models.Model):
         ]
     )
     background_pdf = fields.Binary(string="Background PDF")
+    report_id = fields.Many2one("ir.actions.report", string="Report")
 
 
 class IrActionsReport(models.Model):
     _inherit = "ir.actions.report"
 
-    custom_report_background = fields.Boolean(string="Custom Report Background")
+    custom_report_background = fields.Boolean(
+        string="Custom Report Background"
+    )
     custom_report_background_image = fields.Binary(string="Background Image")
     custom_report_type = fields.Selection(
         [
@@ -74,6 +83,20 @@ class IrActionsReport(models.Model):
         return super(
             IrActionsReport, self.with_context(background_company=company_id)
         )._render_qweb_pdf(res_ids=res_ids, data=data)
+
+    def add_pdf_watermarks(self, custom_background_data, page):
+        """ create a temp file and set datas and added in report page.
+        #T4209 """
+        temp_back_id, temp_back_path = tempfile.mkstemp(
+            suffix=".pdf", prefix="back_report.tmp."
+        )
+        back_data = base64.b64decode(custom_background_data)
+        with closing(os.fdopen(temp_back_id, "wb")) as back_file:
+            back_file.write(back_data)
+        pdf_reader_watermark = PdfFileReader(temp_back_path, "rb")
+        watermark_page = pdf_reader_watermark.getPage(0)
+        watermark_page.mergePage(page)
+        return watermark_page
 
     @api.model
     def _run_wkhtmltopdf(
@@ -166,13 +189,91 @@ class IrActionsReport(models.Model):
                         "Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file number of subprocess reached. Message : %s"
                     )
                 else:
-                    message = _("Wkhtmltopdf failed (error code: %s). Message: %s")
+                    message = _(
+                        "Wkhtmltopdf failed (error code: %s). Message: %s"
+                    )
                 _logger.warning(message, process.returncode, err[-1000:])
-                raise UserError(message % (str(process.returncode), err[-1000:]))
+                raise UserError(
+                    message % (str(process.returncode), err[-1000:])
+                )
             else:
                 if err:
                     _logger.warning("wkhtmltopdf: %s" % err)
-            if self.custom_report_background:
+            if (
+                self
+                and self.custom_report_background
+                and self.custom_report_type == "dynamic"
+            ):
+                temp_report_id, temp_report_path = tempfile.mkstemp(
+                    suffix=".pdf", prefix="with_back_report.tmp."
+                )
+                output = PdfFileWriter()
+                pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
+                first_page = self.background_ids.search(
+                    [("type", "=", "first_page")],
+                    limit=1,
+                )
+                last_page = self.background_ids.search(
+                    [("type", "=", "last_page")],
+                    limit=1,
+                )
+                fixed_pages = self.background_ids.search(
+                    [("type", "=", "fixed")]
+                )
+                remaining_pages = self.background_ids.search(
+                    [("type", "=", "remaining")],
+                    limit=1,
+                )
+                for i in range(pdf_reader_content.getNumPages()):
+                    print(
+                        "\n i : ",
+                        i,
+                        first_page,
+                        last_page,
+                        fixed_pages.mapped("page_number"),
+                    )
+                    if first_page and fixed_pages.background_pdf and i == 0:
+                        page = self.add_pdf_watermarks(
+                            first_page.background_pdf,
+                            pdf_reader_content.getPage(i),
+                        )
+                        output.addPage(page)
+                    elif (
+                        last_page
+                        and last_page.background_pdf
+                        and i == pdf_reader_content.getNumPages() - 1
+                    ):
+                        page = self.add_pdf_watermarks(
+                            last_page.background_pdf,
+                            pdf_reader_content.getPage(i),
+                        )
+                        output.addPage(page)
+                    elif i in fixed_pages.mapped("page_number"):
+                        fixed_page = fixed_pages.search(
+                            [("page_number", "=", i)],
+                            limit=1,
+                        )
+                        if fixed_page and fixed_page.background_pdf:
+                            page = self.add_pdf_watermarks(
+                                fixed_page.background_pdf,
+                                pdf_reader_content.getPage(i),
+                            )
+                        else:
+                            page = pdf_reader_content.getPage(i)
+                        output.addPage(page)
+                    else:
+                        if remaining_pages and remaining_pages.background_pdf:
+                            page = self.add_pdf_watermarks(
+                                remaining_pages.background_pdf,
+                                pdf_reader_content.getPage(i),
+                            )
+                        else:
+                            page = pdf_reader_content.getPage(i)
+                        output.addPage(page)
+                output.write(open(temp_report_path, "wb"))
+                pdf_report_path = temp_report_path
+                os.close(temp_report_id)
+            elif self.custom_report_background:
                 temp_back_id, temp_back_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="back_report.tmp."
                 )
@@ -210,7 +311,9 @@ class IrActionsReport(models.Model):
 
                     for i in range(pdf_reader_content.getNumPages()):
                         page = pdf_reader_content.getPage(i)
-                        pdf_reader_watermark = PdfFileReader(temp_back_path, "rb")
+                        pdf_reader_watermark = PdfFileReader(
+                            temp_back_path, "rb"
+                        )
                         watermark = pdf_reader_watermark.getPage(0)
                         watermark.mergePage(page)
                         output.addPage(watermark)
@@ -229,6 +332,8 @@ class IrActionsReport(models.Model):
             try:
                 os.unlink(temporary_file)
             except (OSError, IOError):
-                _logger.error("Error when trying to remove file %s" % temporary_file)
+                _logger.error(
+                    "Error when trying to remove file %s" % temporary_file
+                )
 
         return pdf_content

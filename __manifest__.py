@@ -9,6 +9,7 @@
     "images": [],
     "init_xml": [],
     "data": [
+        "security/ir.model.access.csv",
         "views/ir_actions.xml",
         "views/res_company_view.xml",
         "views/report_template.xml",
