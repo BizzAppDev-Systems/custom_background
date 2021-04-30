@@ -242,10 +242,10 @@ class IrActionsReport(models.Model):
                         and i == pdf_reader_content.getNumPages() - 1
                     ):
                         watermark = last_page.background_pdf
-                    elif i in fixed_pages.mapped("page_number"):
+                    elif i + 1 in fixed_pages.mapped("page_number"):
                         fixed_page = fixed_pages.search(
                             [
-                                ("page_number", "=", i),
+                                ("page_number", "=", i + 1),
                                 ("report_id", "=", self.id),
                             ],
                             limit=1,
@@ -265,6 +265,12 @@ class IrActionsReport(models.Model):
                             and expression.background_pdf
                         ):
                             watermark = expression.background_pdf
+                        else:
+                            if (
+                                remaining_pages
+                                and remaining_pages.background_pdf
+                            ):
+                                watermark = remaining_pages.background_pdf
                     else:
                         if remaining_pages and remaining_pages.background_pdf:
                             watermark = remaining_pages.background_pdf
