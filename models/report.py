@@ -13,6 +13,7 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.misc import find_in_path
 from odoo.tools.translate import _
+from odoo.tools.safe_eval import safe_eval
 
 try:
     createBarcodeDrawing(
@@ -86,8 +87,7 @@ class IrActionsReport(models.Model):
         )._render_qweb_pdf(res_ids=res_ids, data=data)
 
     def add_pdf_watermarks(self, custom_background_data, page):
-        """ create a temp file and set datas and added in report page.
-        #T4209 """
+        """create a temp file and set datas and added in report page. #T4209"""
         temp_back_id, temp_back_path = tempfile.mkstemp(
             suffix=".pdf", prefix="back_report.tmp."
         )
@@ -225,6 +225,13 @@ class IrActionsReport(models.Model):
                     [("type", "=", "remaining"), ("report_id", "=", self.id)],
                     limit=1,
                 )
+                expression = self.background_ids.search(
+                    [
+                        ("type", "=", "expression"),
+                        ("report_id", "=", self.id),
+                    ],
+                    limit=1,
+                )
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
                     if first_page and fixed_pages.background_pdf and i == 0:
@@ -239,17 +246,32 @@ class IrActionsReport(models.Model):
                         fixed_page = fixed_pages.search(
                             [
                                 ("page_number", "=", i),
-                                ("report_id", "=", self.id)
-                            ], limit=1,
+                                ("report_id", "=", self.id),
+                            ],
+                            limit=1,
                         )
                         if fixed_page and fixed_page.background_pdf:
                             watermark = fixed_page.background_pdf
+                    elif expression and expression.page_expression:
+                        eval_dict = {"page": i}
+                        safe_eval(
+                            expression.page_expression,
+                            eval_dict,
+                            mode="exec",
+                            nocopy=True,
+                        )
+                        if (
+                            eval_dict.get("result", False)
+                            and expression.background_pdf
+                        ):
+                            watermark = expression.background_pdf
                     else:
                         if remaining_pages and remaining_pages.background_pdf:
                             watermark = remaining_pages.background_pdf
                     if watermark:
                         page = self.add_pdf_watermarks(
-                            watermark, pdf_reader_content.getPage(i),
+                            watermark,
+                            pdf_reader_content.getPage(i),
                         )
                     else:
                         page = pdf_reader_content.getPage(i)
