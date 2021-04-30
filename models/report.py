@@ -253,7 +253,7 @@ class IrActionsReport(models.Model):
                         if fixed_page and fixed_page.background_pdf:
                             watermark = fixed_page.background_pdf
                     elif expression and expression.page_expression:
-                        eval_dict = {"page": i}
+                        eval_dict = {"page": i + 1}
                         safe_eval(
                             expression.page_expression,
                             eval_dict,
