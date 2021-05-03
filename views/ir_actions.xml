@@ -78,11 +78,11 @@
                                         <b>Remaining Pages : </b>
                                         On the Remaining page select, if not set background pdf for pages or not set the configuration of pages then it will set from the remaining pages.
                                     </li>
-                                    <li>
-                                        <b> Extra Note : </b>
-                                        If we do not set the background pdf in the selected configuration then it will not set the background. It will work the same as normal odoo(not set any background).
-                                    </li>
                                 </ol>
+                                Extra Note
+                                <li>
+                                    If no background PDF has been configured for any line, then it will work as normal Odoo report without any extra background.
+                                </li>
                             </p>
                         </div>
                     </page>
