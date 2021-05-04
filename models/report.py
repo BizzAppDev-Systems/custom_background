@@ -49,7 +49,7 @@ class ReportBackgroundLine(models.Model):
             ("expression", "Expression"),
             ("first_page", "First Page"),
             ("last_page", "Last Page"),
-            ("remaining", "Remaning Pages"),
+            ("remaining", "Remaining pages"),
         ]
     )
     background_pdf = fields.Binary(string="Background PDF")
