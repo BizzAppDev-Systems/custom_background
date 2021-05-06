@@ -61,9 +61,7 @@ class ReportBackgroundLine(models.Model):
 class IrActionsReport(models.Model):
     _inherit = "ir.actions.report"
 
-    custom_report_background = fields.Boolean(
-        string="Custom Report Background"
-    )
+    custom_report_background = fields.Boolean(string="Custom Report Background")
     custom_report_background_image = fields.Binary(string="Background Image")
     custom_report_type = fields.Selection(
         [
@@ -191,13 +189,9 @@ class IrActionsReport(models.Model):
                         "Wkhtmltopdf failed (error code: %s). Memory limit too low or maximum file number of subprocess reached. Message : %s"
                     )
                 else:
-                    message = _(
-                        "Wkhtmltopdf failed (error code: %s). Message: %s"
-                    )
+                    message = _("Wkhtmltopdf failed (error code: %s). Message: %s")
                 _logger.warning(message, process.returncode, err[-1000:])
-                raise UserError(
-                    message % (str(process.returncode), err[-1000:])
-                )
+                raise UserError(message % (str(process.returncode), err[-1000:]))
             else:
                 if err:
                     _logger.warning("wkhtmltopdf: %s" % err)
@@ -240,20 +234,12 @@ class IrActionsReport(models.Model):
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
                     if first_page and i == 0:
-                        if (
-                            first_page.fall_back_to_company
-                            and company_background
-                        ):
+                        if first_page.fall_back_to_company and company_background:
                             watermark = company_background_img
                         elif fixed_pages.background_pdf:
                             watermark = first_page.background_pdf
-                    elif (
-                        last_page and i == pdf_reader_content.getNumPages() - 1
-                    ):
-                        if (
-                            last_page.fall_back_to_company
-                            and company_background
-                        ):
+                    elif last_page and i == pdf_reader_content.getNumPages() - 1:
+                        if last_page.fall_back_to_company and company_background:
                             watermark = company_background_img
                         elif last_page.background_pdf:
                             watermark = last_page.background_pdf
@@ -288,8 +274,7 @@ class IrActionsReport(models.Model):
                         ):
                             watermark = company_background_img
                         elif (
-                            eval_dict.get("result", False)
-                            and expression.background_pdf
+                            eval_dict.get("result", False) and expression.background_pdf
                         ):
                             watermark = expression.background_pdf
                         else:
@@ -359,9 +344,7 @@ class IrActionsReport(models.Model):
 
                     for i in range(pdf_reader_content.getNumPages()):
                         page = pdf_reader_content.getPage(i)
-                        pdf_reader_watermark = PdfFileReader(
-                            temp_back_path, "rb"
-                        )
+                        pdf_reader_watermark = PdfFileReader(temp_back_path, "rb")
                         watermark = pdf_reader_watermark.getPage(0)
                         watermark.mergePage(page)
                         output.addPage(watermark)
@@ -380,8 +363,6 @@ class IrActionsReport(models.Model):
             try:
                 os.unlink(temporary_file)
             except (OSError, IOError):
-                _logger.error(
-                    "Error when trying to remove file %s" % temporary_file
-                )
+                _logger.error("Error when trying to remove file %s" % temporary_file)
 
         return pdf_content
