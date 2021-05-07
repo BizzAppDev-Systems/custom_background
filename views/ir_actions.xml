@@ -24,6 +24,7 @@
                                     <group>
                                         <group>
                                             <field name="type" />
+                                            <field name="fall_back_to_company" />
                                             <field name="page_number"
                                                 attrs="{'invisible': [('type', '!=', 'fixed')]}" />
                                             <field name="page_expression"

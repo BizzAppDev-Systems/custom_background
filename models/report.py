@@ -55,6 +55,7 @@ class ReportBackgroundLine(models.Model):
     background_pdf = fields.Binary(string="Background PDF")
     report_id = fields.Many2one("ir.actions.report", string="Report")
     page_expression = fields.Char()
+    fall_back_to_company = fields.Boolean()
 
 
 class IrActionsReport(models.Model):
@@ -226,16 +227,22 @@ class IrActionsReport(models.Model):
                     ],
                     limit=1,
                 )
+                company_background = self._context.get("background_company")
+                company_background_img = (
+                    company_background.custom_report_background_image
+                )
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
-                    if first_page and fixed_pages.background_pdf and i == 0:
-                        watermark = first_page.background_pdf
-                    elif (
-                        last_page
-                        and last_page.background_pdf
-                        and i == pdf_reader_content.getNumPages() - 1
-                    ):
-                        watermark = last_page.background_pdf
+                    if first_page and i == 0:
+                        if first_page.fall_back_to_company and company_background:
+                            watermark = company_background_img
+                        elif fixed_pages.background_pdf:
+                            watermark = first_page.background_pdf
+                    elif last_page and i == pdf_reader_content.getNumPages() - 1:
+                        if last_page.fall_back_to_company and company_background:
+                            watermark = company_background_img
+                        elif last_page.background_pdf:
+                            watermark = last_page.background_pdf
                     elif i + 1 in fixed_pages.mapped("page_number"):
                         fixed_page = fixed_pages.search(
                             [
@@ -244,7 +251,13 @@ class IrActionsReport(models.Model):
                             ],
                             limit=1,
                         )
-                        if fixed_page and fixed_page.background_pdf:
+                        if (
+                            fixed_page
+                            and fixed_page.fall_back_to_company
+                            and company_background
+                        ):
+                            watermark = company_background_img
+                        elif fixed_page and fixed_page.background_pdf:
                             watermark = fixed_page.background_pdf
                     elif expression and expression.page_expression:
                         eval_dict = {"page": i + 1}
@@ -254,14 +267,34 @@ class IrActionsReport(models.Model):
                             mode="exec",
                             nocopy=True,
                         )
-                        if eval_dict.get("result", False) and expression.background_pdf:
+                        if (
+                            expression.fall_back_to_company
+                            and company_background
+                            and eval_dict.get("result", False)
+                        ):
+                            watermark = company_background_img
+                        elif (
+                            eval_dict.get("result", False) and expression.background_pdf
+                        ):
                             watermark = expression.background_pdf
                         else:
-                            if remaining_pages and remaining_pages.background_pdf:
-                                watermark = remaining_pages.background_pdf
+                            if remaining_pages:
+                                if (
+                                    remaining_pages.fall_back_to_company
+                                    and company_background
+                                ):
+                                    watermark = company_background_img
+                                elif remaining_pages.background_pdf:
+                                    watermark = remaining_pages.background_pdf
                     else:
-                        if remaining_pages and remaining_pages.background_pdf:
-                            watermark = remaining_pages.background_pdf
+                        if remaining_pages:
+                            if (
+                                remaining_pages.fall_back_to_company
+                                and company_background
+                            ):
+                                watermark = company_background_img
+                            elif remaining_pages.background_pdf:
+                                watermark = remaining_pages.background_pdf
                     if watermark:
                         page = self.add_pdf_watermarks(
                             watermark,
