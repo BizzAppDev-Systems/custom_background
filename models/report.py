@@ -79,8 +79,12 @@ class IrActionsReport(models.Model):
         Model = self.env[self.model]
         record_ids = Model.browse(res_ids)
         company_id = False
-        if hasattr(record_ids[:1], "company_id"):
+        if record_ids[:1]._name == "res.company":
+            company_id = record_ids[:1]
+        elif hasattr(record_ids, 'company_id'):
             company_id = record_ids[:1].company_id
+        else:
+            company_id = self.env.company
         return super(
             IrActionsReport, self.with_context(background_company=company_id)
         )._render_qweb_pdf(res_ids=res_ids, data=data)
