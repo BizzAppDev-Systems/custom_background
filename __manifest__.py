@@ -1,6 +1,6 @@
 {
     "name": "Custom Background",
-    "version": "14.1.0.0.2",
+    "version": "14.1.0.0.3",
     "author": "BizzAppDev",
     "website": "http://www.bizzappdev.com",
     "category": "GenericModules",

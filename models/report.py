@@ -81,7 +81,8 @@ class IrActionsReport(models.Model):
         company_id = False
         if record_ids[:1]._name == "res.company":
             company_id = record_ids[:1]
-        elif hasattr(record_ids, 'company_id'):
+        # Fix test cases error. #22107
+        elif hasattr(record_ids[:1], 'company_id'):
             company_id = record_ids[:1].company_id
         else:
             company_id = self.env.company
