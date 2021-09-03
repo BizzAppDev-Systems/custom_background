@@ -157,7 +157,9 @@ class IrActionsReport(models.Model):
             company_id = record_ids[:1]
         # Fix test cases error. #22107
         elif hasattr(record_ids[:1], "company_id"):
-            company_id = record_ids[:1].company_id
+            # If in record company is not set then consider current log in
+            # user's company. #22476
+            company_id = record_ids[:1].company_id or self.env.user.company_id
         else:
             company_id = self.env.company
 
