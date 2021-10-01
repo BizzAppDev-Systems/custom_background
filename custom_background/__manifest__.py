@@ -6,7 +6,7 @@
     "category": "GenericModules",
     "depends": ["base", "web"],
     "summary": "Custom  Background",
-    "images": ['images/image.png'],
+    "images": ["images/image.png"],
     "init_xml": [],
     "data": [
         "security/ir.model.access.csv",
