@@ -14,6 +14,7 @@ from odoo.exceptions import UserError
 from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
+# import markdown # [WIP]
 
 try:
     createBarcodeDrawing(
@@ -283,6 +284,15 @@ class IrActionsReport(models.Model):
             head_file_fd, head_file_path = tempfile.mkstemp(
                 suffix=".html", prefix="report.header.tmp."
             )
+
+            # [WIP]
+            # header_in_html = markdown.markdown(header)
+            # header_in_bytes = bytes(header_in_html, 'utf-8')
+
+            # header_in_bytes = header.encode(encoding='utf-8')
+            # header_in_bytes = header.decode("utf-8")
+            # html_text = markdown(html_content, output_format='html4')
+
             with closing(os.fdopen(head_file_fd, "wb")) as head_file:
                 head_file.write(header)
             temporary_files.append(head_file_path)
@@ -291,6 +301,9 @@ class IrActionsReport(models.Model):
             foot_file_fd, foot_file_path = tempfile.mkstemp(
                 suffix=".html", prefix="report.footer.tmp."
             )
+            # [WIP]
+            # footer_in_bytes = footer.encode(encoding='utf-8')
+
             with closing(os.fdopen(foot_file_fd, "wb")) as foot_file:
                 foot_file.write(footer)
             temporary_files.append(foot_file_path)
@@ -302,6 +315,10 @@ class IrActionsReport(models.Model):
             body_file_fd, body_file_path = tempfile.mkstemp(
                 suffix=".html", prefix=prefix
             )
+
+            # [WIP]
+            # body_in_bytes = header.encode(encoding='utf-8')
+
             with closing(os.fdopen(body_file_fd, "wb")) as body_file:
                 body_file.write(body)
             paths.append(body_file_path)
