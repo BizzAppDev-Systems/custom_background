@@ -14,8 +14,6 @@
         "views/res_company_view.xml",
         "views/report_template.xml",
     ],
-    "demo_xml": [],
-    "test": [],
     "installable": True,
     "application": False,
     "license": "Other proprietary",
