@@ -283,20 +283,16 @@ class IrActionsReport(models.Model):
             head_file_fd, head_file_path = tempfile.mkstemp(
                 suffix=".html", prefix="report.header.tmp."
             )
-
-            header_bytes = bytes(header, 'utf-8')
             with closing(os.fdopen(head_file_fd, "wb")) as head_file:
-                head_file.write(header_bytes)
+                head_file.write(header.encode())
             temporary_files.append(head_file_path)
             files_command_args.extend(["--header-html", head_file_path])
         if footer:
             foot_file_fd, foot_file_path = tempfile.mkstemp(
                 suffix=".html", prefix="report.footer.tmp."
             )
-
-            footer_bytes = bytes(footer, 'utf-8')
             with closing(os.fdopen(foot_file_fd, "wb")) as foot_file:
-                foot_file.write(footer_bytes)
+                foot_file.write(footer.encode())
             temporary_files.append(foot_file_path)
             files_command_args.extend(["--footer-html", foot_file_path])
 
@@ -306,10 +302,8 @@ class IrActionsReport(models.Model):
             body_file_fd, body_file_path = tempfile.mkstemp(
                 suffix=".html", prefix=prefix
             )
-
-            body_bytes = bytes(body, 'utf-8')
             with closing(os.fdopen(body_file_fd, "wb")) as body_file:
-                body_file.write(body_bytes)
+                body_file.write(body.encode())
             paths.append(body_file_path)
             temporary_files.append(body_file_path)
 
