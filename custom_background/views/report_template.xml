@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <data>
+        <template
+            id="external_layout_standard_inherit"
+            inherit_id="web.external_layout_standard"
+        >
+            <xpath expr="//div[hasclass('row')]/.." position="replace" />
+            <xpath expr="//ul[hasclass('list-inline')]/../.." position="replace" />
+            <xpath expr="//t[@t-call='web.address_layout']" position="after">
+                <!-- Solved issue of display loader in portal invoice report #19896 -->
+                <style t-if="report_type == 'pdf'">
+                    body {
+                        background-color: transparent !important
+                    }
+                </style>
+            </xpath>
+        </template>
+    </data>
+</odoo>
