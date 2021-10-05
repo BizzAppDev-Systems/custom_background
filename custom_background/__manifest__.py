@@ -1,3 +1,4 @@
+# See LICENSE file for full copyright and licensing details.
 {
     "name": "Custom Background",
     "version": "15.0.0.0.0",
