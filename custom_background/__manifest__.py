@@ -1,7 +1,7 @@
 # See LICENSE file for full copyright and licensing details.
 {
     "name": "Custom Background",
-    "version": "15.0.0.0.0",
+    "version": "15.0.0.0.1",
     "author": "BizzAppDev",
     "website": "http://www.bizzappdev.com",
     "category": "GenericModules",
