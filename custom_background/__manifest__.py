@@ -13,9 +13,13 @@
         "security/ir.model.access.csv",
         "views/ir_actions.xml",
         "views/res_company_view.xml",
-        "views/report_template.xml",
     ],
     "installable": True,
     "application": False,
+    "assets": {
+        "web.report_assets_common": [
+            "/custom_background/static/src/scss/report_qweb_pdf.scss",
+        ],
+    },
     "license": "Other proprietary",
 }
