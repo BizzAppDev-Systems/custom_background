@@ -483,7 +483,8 @@ class IrActionsReport(models.Model):
                                     and company_background
                                 ):
                                     # Start. #22260
-                                    # If is_bg_per_lang then get custom bg from the company.
+                                    # If is_bg_per_lang then get
+                                    # custom bg from the company.
                                     if self.is_bg_per_lang:
                                         watermark = custom_bg_lang[:1].background_pdf
                                     else:
@@ -587,7 +588,7 @@ class IrActionsReport(models.Model):
         for temporary_file in temporary_files:
             try:
                 os.unlink(temporary_file)
-            except (OSError, IOError):
+            except (OSError, IOError):  # noqa: disable=B014
                 _logger.error("Error when trying to remove file %s" % temporary_file)
 
         return pdf_content
