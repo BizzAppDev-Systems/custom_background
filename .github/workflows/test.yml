@@ -1,7 +1,7 @@
 name: test Odoo addons
 
 on:
-  push:
+  pull_request:
     branches:
       - "15.0*"
 
