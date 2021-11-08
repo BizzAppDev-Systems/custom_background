@@ -1,0 +1,51 @@
+name: test Odoo addons
+
+on:
+  push:
+    branches:
+      - "15.0*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: bizzappdev/odoo-github-wrkf-15.0:latest
+            #- container: ghcr.io/oca/oca-ci/py3.8-odoo15.0:latest
+    services:
+      postgres:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: odoo
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          token: ${{ secrets.ACT_PAT }}
+          persist-credentials: false
+      - name: Enterprise Code
+        env:
+          token: ${{ secrets.ACT_PAT }}
+        run: bad_enterprise_clone
+      - name: Setup Submobules
+        run: bad_requirements_submodule
+      - name: Install addons and dependencies
+        run: oca_install_addons
+      #     - name: Check licenses
+      #       run: manifestoo -d . check-licenses
+      #     - name: Check development status
+      #       run: manifestoo -d . check-dev-status --default-dev-status=Beta
+      - name: Initialize test db
+        run: oca_init_test_database
+      - name: Run tests
+        run: oca_run_tests
+      - uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
