@@ -9,15 +9,16 @@
                 <xpath expr="//notebook" position="inside">
                     <page name="configuration" string="Configuration">
                         <group>
+                            <field name="is_dynamic_background" />
                             <field name="is_bg_per_lang" />
                             <separator
                                 string="Custom Background Image"
                                 colspan="2"
-                                attrs="{'invisible': [('is_bg_per_lang', '=', True)]}"
+                                attrs="{'invisible': ['|', ('is_bg_per_lang', '=', True), ('is_dynamic_background', '=', True)]}"
                             />
                             <field
                                 name="custom_report_background_image"
-                                attrs="{'invisible': [('is_bg_per_lang', '=', True)]}"
+                                attrs="{'invisible': ['|', ('is_bg_per_lang', '=', True), ('is_dynamic_background', '=', True)]}"
                             />
                         </group>
                         <group>
@@ -25,11 +26,11 @@
                             <separator
                                 string="Custom Background Image Per Language"
                                 colspan="2"
-                                attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
+                                attrs="{'invisible': ['|', ('is_bg_per_lang', '!=', True), ('is_dynamic_background', '=', True)]}"
                             />
                             <field
                                 name="bg_per_lang_ids"
-                                attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
+                                attrs="{'invisible': ['|', ('is_bg_per_lang', '!=', True), ('is_dynamic_background', '=', True)]}"
                                 widget="one2many"
                                 nolabel="1"
                             >
@@ -50,6 +51,58 @@
                                 <tree>
                                     <field name="lang_id" />
                                     <field name="file_name" string="Background PDF" />
+                                </tree>
+                            </field>
+                        </group>
+                        <!-- Added new fields for configurations of background report #T5211 -->
+                        <group>
+                            <separator
+                                string="Custom Background Configuration"
+                                colspan="2"
+                                attrs="{'invisible': [('is_dynamic_background', '!=', True)]}"
+                            />
+                            <field
+                                name="background_ids"
+                                attrs="{'invisible': [('is_dynamic_background', '!=', True)]}"
+                                widget="one2many"
+                                nolabel="1"
+                            >
+                                <form>
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="type" />
+                                                <field
+                                                    name="page_number"
+                                                    attrs="{'invisible': [('type', '!=', 'fixed')]}"
+                                                />
+                                                <field
+                                                    name="page_expression"
+                                                    attrs="{'invisible': [('type', '!=', 'expression')]}"
+                                                />
+                                            </group>
+                                            <group>
+                                                <field
+                                                    name="background_pdf"
+                                                    filename="file_name"
+                                                />
+                                                <field name="file_name" invisible="1" />
+                                                <field
+                                                    name="lang_id"
+                                                    attrs="{'readonly': [('parent.is_bg_per_lang', '!=', True)], 'required': [('parent.is_bg_per_lang', '=', True)]}"
+                                                />
+                                                <field name="report_id" invisible="1" />
+                                            </group>
+                                        </group>
+                                    </sheet>
+                                </form>
+                                <tree>
+                                    <field name="type" />
+                                    <field name="page_number" invisible="1" />
+                                    <field name="page_expression" invisible="1" />
+                                    <field name="file_name" string="Background PDF" />
+                                    <field name="lang_id" />
+                                    <field name="report_id" invisible="1" />
                                 </tree>
                             </field>
                         </group>

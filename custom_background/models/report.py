@@ -63,6 +63,8 @@ class ReportBackgroundLine(models.Model):
         "res.lang",
         string="Language",
     )
+    # Added new field #T5211
+    company_id = fields.Many2one(comodel_name="res.company", string="Company")
 
 
 class IrActionsReport(models.Model):
@@ -398,6 +400,7 @@ class IrActionsReport(models.Model):
                 company_background_img = (
                     company_background.custom_report_background_image
                 )
+                company_background_dynamic = company_background.background_ids
                 # Start. #22260
                 if self.is_bg_per_lang:
                     lang_code = self.get_lang()
@@ -414,7 +417,13 @@ class IrActionsReport(models.Model):
                             if self.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
-                                watermark = company_background_img
+                                company_watermark = company_background_dynamic.filtered(
+                                    lambda a: a.type == "first_page"
+                                )
+                                if company_watermark:
+                                    watermark = company_watermark.background_pdf
+                                else:
+                                    watermark = company_background_img
                             # End. #22260
                         # Fix page 1st issue. #22260
                         elif first_page.background_pdf:
@@ -426,7 +435,13 @@ class IrActionsReport(models.Model):
                             if self.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
-                                watermark = company_background_img
+                                company_watermark = company_background_dynamic.filtered(
+                                    lambda a: a.type == "last_page"
+                                )
+                                if company_watermark:
+                                    watermark = company_watermark.background_pdf
+                                else:
+                                    watermark = company_background_img
                             # End. #22260
                         elif last_page.background_pdf:
                             watermark = last_page.background_pdf
@@ -448,7 +463,14 @@ class IrActionsReport(models.Model):
                             if self.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
-                                watermark = company_background_img
+                                company_watermark = company_background_dynamic.filtered(
+                                    lambda a: a.type == "fixed"
+                                    and a.page_number == i + 1
+                                )
+                                if company_watermark:
+                                    watermark = company_watermark.background_pdf
+                                else:
+                                    watermark = company_background_img
                             # End. #22260
                         elif fixed_page and fixed_page.background_pdf:
                             watermark = fixed_page.background_pdf
@@ -470,7 +492,24 @@ class IrActionsReport(models.Model):
                             if self.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
-                                watermark = company_background_img
+                                company_watermark = company_background_dynamic.filtered(
+                                    lambda a: a.type == "expression"
+                                    and a.page_expression
+                                )
+                                if company_watermark:
+                                    company_eval_dict = {"page": i + 1}
+                                    safe_eval(
+                                        company_watermark.page_expression,
+                                        company_eval_dict,
+                                        mode="exec",
+                                        nocopy=True,
+                                    )
+                                    if company_eval_dict.get("result", False):
+                                        watermark = company_watermark.background_pdf
+                                    else:
+                                        watermark = company_background_img
+                                else:
+                                    watermark = company_background_img
                             # End. #22260
                         elif (
                             eval_dict.get("result", False) and expression.background_pdf
@@ -483,11 +522,20 @@ class IrActionsReport(models.Model):
                                     and company_background
                                 ):
                                     # Start. #22260
-                                    # If is_bg_per_lang then get custom bg from the company.
+                                    # If is_bg_per_lang then get custom bg from
+                                    # the company.
                                     if self.is_bg_per_lang:
                                         watermark = custom_bg_lang[:1].background_pdf
                                     else:
-                                        watermark = company_background_img
+                                        company_watermark = (
+                                            company_background_dynamic.filtered(
+                                                lambda a: a.type == "remaining"
+                                            )
+                                        )
+                                        if company_watermark:
+                                            watermark = company_watermark.background_pdf
+                                        else:
+                                            watermark = company_background_img
                                     # End. #22260
                                 elif remaining_pages.background_pdf:
                                     watermark = remaining_pages.background_pdf
@@ -502,7 +550,15 @@ class IrActionsReport(models.Model):
                                 if self.is_bg_per_lang:
                                     watermark = custom_bg_lang[:1].background_pdf
                                 else:
-                                    watermark = company_background_img
+                                    company_watermark = (
+                                        company_background_dynamic.filtered(
+                                            lambda a: a.type == "remaining"
+                                        )
+                                    )
+                                    if company_watermark:
+                                        watermark = company_watermark.background_pdf
+                                    else:
+                                        watermark = company_background_img
                                 # End. #22260
                             elif remaining_pages.background_pdf:
                                 watermark = remaining_pages.background_pdf

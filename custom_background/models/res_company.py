@@ -17,7 +17,17 @@ class ResCompany(models.Model):
         string="Background Per Language",
     )
 
-    @api.constrains("is_bg_per_lang", "bg_per_lang_ids")
+    # Added new field #T5211
+    is_dynamic_background = fields.Boolean(
+        string="Is Dynamic Background",
+    )
+    background_ids = fields.One2many(
+        "report.background.line", "company_id", "Background Configuration"
+    )
+
+    @api.constrains(
+        "is_bg_per_lang", "bg_per_lang_ids", "is_dynamic_background", "background_ids"
+    )
     def _check_company_custom_bg_config(self):
         """New constrains method for check custom bg per company is set or not when
         'From Company' type is set at ir_actions_report level. #22260"""
