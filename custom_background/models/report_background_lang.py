@@ -13,7 +13,7 @@ class ReportBackgroundLang(models.Model):
         string="Language",
     )
     background_pdf = fields.Binary(string="Background PDF", required=True)
-    file_name = fields.Char(string="File Name")
+    file_name = fields.Char()
     report_id = fields.Many2one("ir.actions.report", string="Report")
     company_id = fields.Many2one(
         "res.company",

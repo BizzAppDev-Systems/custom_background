@@ -15,6 +15,8 @@ from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
 
+_logger = logging.getLogger(__name__)
+
 try:
     createBarcodeDrawing(
         "Code128",
@@ -24,8 +26,8 @@ try:
         height=100,
         humanReadable=1,
     ).asString("png")
-except Exception:
-    pass
+except Exception as e:
+    _logger.info(e)
 
 
 # --------------------------------------------------------------------------
@@ -54,7 +56,7 @@ class ReportBackgroundLine(models.Model):
     )
     background_pdf = fields.Binary(string="Background PDF")
     # New field. #22260
-    file_name = fields.Char(string="File Name")
+    file_name = fields.Char()
     report_id = fields.Many2one("ir.actions.report", string="Report")
     page_expression = fields.Char()
     fall_back_to_company = fields.Boolean()
@@ -68,7 +70,7 @@ class ReportBackgroundLine(models.Model):
 class IrActionsReport(models.Model):
     _inherit = "ir.actions.report"
 
-    custom_report_background = fields.Boolean(string="Custom Report Background")
+    custom_report_background = fields.Boolean()
     custom_report_background_image = fields.Binary(string="Background Image")
     custom_report_type = fields.Selection(
         [
@@ -149,8 +151,14 @@ class IrActionsReport(models.Model):
                     )
                 )
 
-    def _render_qweb_pdf(self, res_ids=None, data=None):
-        Model = self.env[self.model]
+    def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        # Get the report. #24894
+        if not self:
+            report = self._get_report_from_name(report_ref)
+        else:
+            report = self
+        # Get the model from the report. #24894
+        Model = self.env[report.model]
         record_ids = Model.browse(res_ids)
         company_id = False
         if record_ids[:1]._name == "res.company":
@@ -164,10 +172,11 @@ class IrActionsReport(models.Model):
             company_id = self.env.company
 
         # Add custom_bg_res_ids in context. #22260
+        # Added the parameter "report_ref". #24894
         return super(
             IrActionsReport,
             self.with_context(custom_bg_res_ids=res_ids, background_company=company_id),
-        )._render_qweb_pdf(res_ids=res_ids, data=data)
+        )._render_qweb_pdf(report_ref=report_ref, res_ids=res_ids, data=data)
 
     def add_pdf_watermarks(self, custom_background_data, page):
         """create a temp file and set datas and added in report page. #T4209"""
@@ -240,7 +249,7 @@ class IrActionsReport(models.Model):
         return custom_background
 
     @api.model
-    def _run_wkhtmltopdf(
+    def _run_wkhtmltopdf(  # noqa: C901
         self,
         bodies,
         header=None,
@@ -327,12 +336,13 @@ class IrActionsReport(models.Model):
 
             if process.returncode not in [0, 1]:
                 if process.returncode == -11:
-                    message = _(
-                        "Wkhtmltopdf failed (error code: %s). Memory limit too low or "
+                    message = (
+                        "Wkhtmltopdf failed (error code: (error code: %s). Memory limit "
+                        "too low or "
                         "maximum file number of subprocess reached. Message : %s"
                     )
                 else:
-                    message = _("Wkhtmltopdf failed (error code: %s). Message: %s")
+                    message = "Wkhtmltopdf failed (error code: %s). Message: %s"
                 _logger.warning(message, process.returncode, err[-1000:])
                 raise UserError(message % (str(process.returncode), err[-1000:]))
             else:
