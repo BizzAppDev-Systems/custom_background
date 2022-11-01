@@ -154,7 +154,7 @@ class IrActionsReport(models.Model):
     def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
         # Get the report. #24894
         if not self:
-            report = self._get_report_from_name(report_ref)
+            report = self.sudo()._get_report_from_name(report_ref)
         else:
             report = self
         # Get the model from the report. #24894
@@ -175,7 +175,7 @@ class IrActionsReport(models.Model):
         # Added the parameter "report_ref". #24894
         return super(
             IrActionsReport,
-            self.with_context(custom_bg_res_ids=res_ids, background_company=company_id),
+            report.with_context(custom_bg_res_ids=res_ids, background_company=company_id),
         )._render_qweb_pdf(report_ref=report_ref, res_ids=res_ids, data=data)
 
     def add_pdf_watermarks(self, custom_background_data, page):
