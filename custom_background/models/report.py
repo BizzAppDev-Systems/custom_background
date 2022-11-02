@@ -154,7 +154,7 @@ class IrActionsReport(models.Model):
     def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
         # Get the report. #24894
         if not self:
-            report = self.sudo()._get_report_from_name(report_ref)
+            report = self._get_report(report_ref)
         else:
             report = self
         # Get the model from the report. #24894
