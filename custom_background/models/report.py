@@ -175,7 +175,7 @@ class IrActionsReport(models.Model):
         # Added the parameter "report_ref". #24894
         return super(
             IrActionsReport,
-            report.with_context(custom_bg_res_ids=res_ids, background_company=company_id),
+            self.with_context(custom_bg_res_ids=res_ids, background_company=company_id),
         )._render_qweb_pdf(report_ref=report_ref, res_ids=res_ids, data=data)
 
     def add_pdf_watermarks(self, custom_background_data, page):
@@ -252,6 +252,7 @@ class IrActionsReport(models.Model):
     def _run_wkhtmltopdf(  # noqa: C901
         self,
         bodies,
+        report_ref=False,
         header=None,
         footer=None,
         landscape=False,
@@ -276,8 +277,8 @@ class IrActionsReport(models.Model):
         # call default odoo standard function of paperformat #19896
         # https://github.com/odoo/odoo/blob/13.0/odoo/addons/base/models
         # /ir_actions_report.py#L243
-        paperformat_id = self.get_paperformat()
-
+        paperformat_id = self._get_report(report_ref).get_paperformat() if report_ref else self.get_paperformat()
+        report = self._get_report(report_ref)
         # Build the base command args for wkhtmltopdf bin
         command_args = self._build_wkhtmltopdf_args(
             paperformat_id,
@@ -350,9 +351,9 @@ class IrActionsReport(models.Model):
                     _logger.warning("wkhtmltopdf: %s" % err)
             # Dynamic Type.
             if (
-                self
-                and self.custom_report_background
-                and self.custom_report_type == "dynamic"
+                report
+                and report.custom_report_background
+                and report.custom_report_type == "dynamic"
             ):
                 temp_report_id, temp_report_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="with_back_report.tmp."
@@ -361,14 +362,14 @@ class IrActionsReport(models.Model):
                 pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
 
                 # Call method for get domain related to the languages. #22260
-                lang_domain = self.get_bg_per_lang()
+                lang_domain = report.get_bg_per_lang()
 
                 # Added lang_domain in all search methods. #22260
                 first_page = self.background_ids.search(
                     lang_domain
                     + [
                         ("type", "=", "first_page"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
@@ -376,7 +377,7 @@ class IrActionsReport(models.Model):
                     lang_domain
                     + [
                         ("type", "=", "last_page"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
@@ -384,14 +385,14 @@ class IrActionsReport(models.Model):
                     lang_domain
                     + [
                         ("type", "=", "fixed"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ]
                 )
                 remaining_pages = self.background_ids.search(
                     lang_domain
                     + [
                         ("type", "=", "remaining"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
@@ -399,7 +400,7 @@ class IrActionsReport(models.Model):
                     lang_domain
                     + [
                         ("type", "=", "expression"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
