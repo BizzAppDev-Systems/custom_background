@@ -175,7 +175,7 @@ class IrActionsReport(models.Model):
         # Added the parameter "report_ref". #24894
         return super(
             IrActionsReport,
-            report.with_context(custom_bg_res_ids=res_ids, background_company=company_id),
+            self.with_context(custom_bg_res_ids=res_ids, background_company=company_id),
         )._render_qweb_pdf(report_ref=report_ref, res_ids=res_ids, data=data)
 
     def add_pdf_watermarks(self, custom_background_data, page):
@@ -252,6 +252,7 @@ class IrActionsReport(models.Model):
     def _run_wkhtmltopdf(  # noqa: C901
         self,
         bodies,
+        report_ref=False,
         header=None,
         footer=None,
         landscape=False,
@@ -276,8 +277,12 @@ class IrActionsReport(models.Model):
         # call default odoo standard function of paperformat #19896
         # https://github.com/odoo/odoo/blob/13.0/odoo/addons/base/models
         # /ir_actions_report.py#L243
-        paperformat_id = self.get_paperformat()
-
+        paperformat_id = (
+            self._get_report(report_ref).get_paperformat()
+            if report_ref
+            else self.get_paperformat()
+        )
+        report = self._get_report(report_ref)
         # Build the base command args for wkhtmltopdf bin
         command_args = self._build_wkhtmltopdf_args(
             paperformat_id,
@@ -350,9 +355,9 @@ class IrActionsReport(models.Model):
                     _logger.warning("wkhtmltopdf: %s" % err)
             # Dynamic Type.
             if (
-                self
-                and self.custom_report_background
-                and self.custom_report_type == "dynamic"
+                report
+                and report.custom_report_background
+                and report.custom_report_type == "dynamic"
             ):
                 temp_report_id, temp_report_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="with_back_report.tmp."
@@ -361,56 +366,56 @@ class IrActionsReport(models.Model):
                 pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
 
                 # Call method for get domain related to the languages. #22260
-                lang_domain = self.get_bg_per_lang()
+                lang_domain = report.get_bg_per_lang()
 
                 # Added lang_domain in all search methods. #22260
-                first_page = self.background_ids.search(
+                first_page = report.background_ids.search(
                     lang_domain
                     + [
                         ("type", "=", "first_page"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
-                last_page = self.background_ids.search(
+                last_page = report.background_ids.search(
                     lang_domain
                     + [
                         ("type", "=", "last_page"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
-                fixed_pages = self.background_ids.search(
+                fixed_pages = report.background_ids.search(
                     lang_domain
                     + [
                         ("type", "=", "fixed"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ]
                 )
-                remaining_pages = self.background_ids.search(
+                remaining_pages = report.background_ids.search(
                     lang_domain
                     + [
                         ("type", "=", "remaining"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
-                expression = self.background_ids.search(
+                expression = report.background_ids.search(
                     lang_domain
                     + [
                         ("type", "=", "expression"),
-                        ("report_id", "=", self.id),
+                        ("report_id", "=", report.id),
                     ],
                     limit=1,
                 )
 
-                company_background = self._context.get("background_company")
+                company_background = report._context.get("background_company")
                 company_background_img = (
                     company_background.custom_report_background_image
                 )
                 # Start. #22260
-                if self.is_bg_per_lang:
-                    lang_code = self.get_lang()
+                if report.is_bg_per_lang:
+                    lang_code = report.get_lang()
                     custom_bg_lang = company_background.bg_per_lang_ids.filtered(
                         lambda l: l.lang_id.code == lang_code
                     )
@@ -421,7 +426,7 @@ class IrActionsReport(models.Model):
                         if first_page.fall_back_to_company and company_background:
                             # Start. #22260
                             # If is_bg_per_lang then get custom bg from the company.
-                            if self.is_bg_per_lang:
+                            if report.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
                                 watermark = company_background_img
@@ -433,7 +438,7 @@ class IrActionsReport(models.Model):
                         if last_page.fall_back_to_company and company_background:
                             # Start. #22260
                             # If is_bg_per_lang then get custom bg from the company.
-                            if self.is_bg_per_lang:
+                            if report.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
                                 watermark = company_background_img
@@ -444,7 +449,7 @@ class IrActionsReport(models.Model):
                         fixed_page = fixed_pages.search(
                             [
                                 ("page_number", "=", i + 1),
-                                ("report_id", "=", self.id),
+                                ("report_id", "=", report.id),
                             ],
                             limit=1,
                         )
@@ -455,7 +460,7 @@ class IrActionsReport(models.Model):
                         ):
                             # Start. #22260
                             # If is_bg_per_lang then get custom bg from the company.
-                            if self.is_bg_per_lang:
+                            if report.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
                                 watermark = company_background_img
@@ -477,7 +482,7 @@ class IrActionsReport(models.Model):
                         ):
                             # Start. #22260
                             # If is_bg_per_lang then get custom bg from the company.
-                            if self.is_bg_per_lang:
+                            if report.is_bg_per_lang:
                                 watermark = custom_bg_lang[:1].background_pdf
                             else:
                                 watermark = company_background_img
@@ -495,7 +500,7 @@ class IrActionsReport(models.Model):
                                     # Start. #22260
                                     # If is_bg_per_lang then get
                                     # custom bg from the company.
-                                    if self.is_bg_per_lang:
+                                    if report.is_bg_per_lang:
                                         watermark = custom_bg_lang[:1].background_pdf
                                     else:
                                         watermark = company_background_img
@@ -510,7 +515,7 @@ class IrActionsReport(models.Model):
                             ):
                                 # Start. #22260
                                 # If is_bg_per_lang then get custom bg from the company.
-                                if self.is_bg_per_lang:
+                                if report.is_bg_per_lang:
                                     watermark = custom_bg_lang[:1].background_pdf
                                 else:
                                     watermark = company_background_img
@@ -518,7 +523,7 @@ class IrActionsReport(models.Model):
                             elif remaining_pages.background_pdf:
                                 watermark = remaining_pages.background_pdf
                     if watermark:
-                        page = self.add_pdf_watermarks(
+                        page = report.add_pdf_watermarks(
                             watermark,
                             pdf_reader_content.getPage(i),
                         )
@@ -528,42 +533,42 @@ class IrActionsReport(models.Model):
                 output.write(open(temp_report_path, "wb"))
                 pdf_report_path = temp_report_path
                 os.close(temp_report_id)
-            elif self.custom_report_background:
+            elif report.custom_report_background:
                 temp_back_id, temp_back_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="back_report.tmp."
                 )
                 custom_background = False
                 # From Report Type.
                 if (
-                    self
-                    and self.custom_report_background
-                    and self.custom_report_type == "report"
+                    report
+                    and report.custom_report_background
+                    and report.custom_report_type == "report"
                 ):
                     # 222760 Starts.If background per lang is True then call method for
                     # get custom background based on different languages.
-                    if self.is_bg_per_lang:
-                        custom_background = self.get_bg_per_lang()
+                    if report.is_bg_per_lang:
+                        custom_background = report.get_bg_per_lang()
                     # 222760 Ends.
                     else:
-                        custom_background = self.custom_report_background_image
+                        custom_background = report.custom_report_background_image
                     # 222760 Ends.
                 # From Company Type.
                 if (
-                    self.custom_report_background
+                    report.custom_report_background
                     and not custom_background
                     and (
-                        self.custom_report_type == "company"
-                        or not self.custom_report_type
+                        report.custom_report_type == "company"
+                        or not report.custom_report_type
                     )
-                    and self._context.get("background_company")  # #19896
+                    and report._context.get("background_company")  # #19896
                 ):
                     # report background will be displayed based on the current
                     # company #19896
-                    company_id = self._context.get("background_company")
+                    company_id = report._context.get("background_company")
                     # 222760 Starts. If background per lang is True then call method for
                     # get custom background from company based on different languages.
-                    if self.is_bg_per_lang:
-                        custom_background = self.get_bg_per_lang()
+                    if report.is_bg_per_lang:
+                        custom_background = report.get_bg_per_lang()
                     # 222760 Ends.
                     else:
                         custom_background = company_id.custom_report_background_image
