@@ -409,7 +409,7 @@ class IrActionsReport(models.Model):
                     limit=1,
                 )
 
-                company_background = report._context.get("background_company")
+                company_background = self._context.get("background_company")
                 company_background_img = (
                     company_background.custom_report_background_image
                 )
@@ -560,11 +560,11 @@ class IrActionsReport(models.Model):
                         report.custom_report_type == "company"
                         or not report.custom_report_type
                     )
-                    and report._context.get("background_company")  # #19896
+                    and self._context.get("background_company")  # #19896
                 ):
                     # report background will be displayed based on the current
                     # company #19896
-                    company_id = report._context.get("background_company")
+                    company_id = self._context.get("background_company")
                     # 222760 Starts. If background per lang is True then call method for
                     # get custom background from company based on different languages.
                     if report.is_bg_per_lang:
