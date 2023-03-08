@@ -19,39 +19,34 @@
                             attrs="{'invisible': [('is_bg_per_lang', '=', True)]}"
                         />
                     </group>
-                    <group>
-                        <!-- New o2m field for configure custom bg based on different languages. #22260 -->
-                        <separator
-                            string="Custom Background Image Per Language"
-                            colspan="2"
-                            attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
-                        />
-                        <field
-                            name="bg_per_lang_ids"
-                            attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
-                            widget="one2many"
-                            nolabel="1"
-                        >
-                            <form>
+                    <!-- New o2m field for configure custom bg based on different languages. #22260 -->
+                    <separator
+                        string="Custom Background Image Per Language"
+                        colspan="2"
+                        attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
+                    />
+                    <field
+                        name="bg_per_lang_ids"
+                        attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
+                        widget="one2many"
+                        nolabel="1"
+                    >
+                        <form>
+                            <group>
                                 <group>
-                                    <group>
-                                        <field name="lang_id" />
-                                    </group>
-                                    <group>
-                                        <field
-                                            name="background_pdf"
-                                            filename="file_name"
-                                        />
-                                        <field name="file_name" invisible="1" />
-                                    </group>
+                                    <field name="lang_id" />
                                 </group>
-                            </form>
-                            <tree>
-                                <field name="lang_id" />
-                                <field name="file_name" string="Background PDF" />
-                            </tree>
-                        </field>
-                    </group>
+                                <group>
+                                    <field name="background_pdf" filename="file_name" />
+                                    <field name="file_name" invisible="1" />
+                                </group>
+                            </group>
+                        </form>
+                        <tree>
+                            <field name="lang_id" />
+                            <field name="file_name" string="Background PDF" />
+                        </tree>
+                    </field>
                 </page>
             </xpath>
         </field>
