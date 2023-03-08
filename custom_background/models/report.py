@@ -77,6 +77,11 @@ class IrActionsReport(models.Model):
             ("company", "From Company"),
             ("report", "From Report Fixed"),
             ("dynamic", "From Report Dynamic"),
+            # Added new custom report type #T5886
+            (
+                "dynamic_per_report_company_lang",
+                "Background Per Report - Company - Lang",
+            ),
         ]
     )
 
@@ -91,6 +96,12 @@ class IrActionsReport(models.Model):
     )
     is_bg_per_lang = fields.Boolean(
         string="Is Background Per Language",
+    )
+    # New field #T5886
+    per_report_com_lang_bg_ids = fields.One2many(
+        "report.company.background.lang",
+        "report_id",
+        string="Per Report Company Language Background",
     )
 
     def get_company_without_custom_bg(self):
@@ -230,6 +241,11 @@ class IrActionsReport(models.Model):
                     ("lang_id", "=", False),
                 ]
             return lang_domain
+        # Call the method for get the custom background per company
+        # and per Lang. #T5886
+        if self.custom_report_type == "dynamic_per_report_company_lang":
+            custom_background = self._get_background_per_report_company_language()
+            return custom_background
 
         # If custom_report_type is report then set report(self) id.
         if self.custom_report_type == "report":
@@ -241,12 +257,48 @@ class IrActionsReport(models.Model):
         # Filter records from report_background_lang model based on the languages.
         # custom_bg_from: company_id or report_id(self).
         custom_bg_lang = custom_bg_from.bg_per_lang_ids.filtered(
-            lambda l: l.lang_id.code == lang_code
+            lambda lang: lang.lang_id.code == lang_code
         )
 
         # Set 1st custom background.
         custom_background = custom_bg_lang[:1].background_pdf
         return custom_background
+
+    def _get_background_per_report_company_language(self):
+        """New method for get the custom background based on the report configuration
+        based on the per company and per Lang. #T5886"""
+        self.ensure_one()
+        lang_code = self.get_lang()
+        company = self._context.get("background_company")
+
+        # Get the custom background if company and Lang are both matched. #T5886
+        custom_background = self.per_report_com_lang_bg_ids.filtered(
+            lambda bg: bg.lang_id.code == lang_code and bg.company_id.id == company.id
+        )
+        if custom_background:
+            return custom_background[:1].background_pdf
+
+        # Get the custom background if company matched but Lang is not set. #T5886
+        custom_bg_only_with_company = self.per_report_com_lang_bg_ids.filtered(
+            lambda bg: bg.company_id.id == company.id and not bg.lang_id.code
+        )
+        if custom_bg_only_with_company:
+            return custom_bg_only_with_company[:1].background_pdf
+
+        # Get the custom background if Lang matched but company is not set. #T5886
+        custom_bg_only_with_lang = self.per_report_com_lang_bg_ids.filtered(
+            lambda bg: bg.lang_id.code == lang_code and not bg.company_id
+        )
+        if custom_bg_only_with_lang:
+            return custom_bg_only_with_lang[:1].background_pdf
+
+        # Get the custom background if Lang is not set and company is not set. #T5886
+        default_custom_bg = self.per_report_com_lang_bg_ids.filtered(
+            lambda bg: not bg.lang_id and not bg.company_id
+        )
+        if default_custom_bg:
+            return default_custom_bg[:1].background_pdf
+        return False
 
     @api.model
     def _run_wkhtmltopdf(  # noqa: C901
@@ -353,11 +405,12 @@ class IrActionsReport(models.Model):
             else:
                 if err:
                     _logger.warning("wkhtmltopdf: %s" % err)
-            # Dynamic Type.
+            # Dynamic Type and Background Per Report - Company - Lang #T5886
             if (
                 report
                 and report.custom_report_background
-                and report.custom_report_type == "dynamic"
+                and report.custom_report_type
+                in ["dynamic", "dynamic_per_report_company_lang"]
             ):
                 temp_report_id, temp_report_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="with_back_report.tmp."
@@ -368,46 +421,50 @@ class IrActionsReport(models.Model):
                 # Call method for get domain related to the languages. #22260
                 lang_domain = report.get_bg_per_lang()
 
-                # Added lang_domain in all search methods. #22260
-                first_page = report.background_ids.search(
-                    lang_domain
-                    + [
-                        ("type", "=", "first_page"),
-                        ("report_id", "=", report.id),
-                    ],
-                    limit=1,
-                )
-                last_page = report.background_ids.search(
-                    lang_domain
-                    + [
-                        ("type", "=", "last_page"),
-                        ("report_id", "=", report.id),
-                    ],
-                    limit=1,
-                )
-                fixed_pages = report.background_ids.search(
-                    lang_domain
-                    + [
-                        ("type", "=", "fixed"),
-                        ("report_id", "=", report.id),
-                    ]
-                )
-                remaining_pages = report.background_ids.search(
-                    lang_domain
-                    + [
-                        ("type", "=", "remaining"),
-                        ("report_id", "=", report.id),
-                    ],
-                    limit=1,
-                )
-                expression = report.background_ids.search(
-                    lang_domain
-                    + [
-                        ("type", "=", "expression"),
-                        ("report_id", "=", report.id),
-                    ],
-                    limit=1,
-                )
+                first_page = (
+                    last_page
+                ) = fixed_page = remaining_pages = expression = False
+                if report.custom_report_type == "dynamic":
+                    # Added lang_domain in all search methods. #22260
+                    first_page = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "first_page"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
+                    last_page = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "last_page"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
+                    fixed_pages = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "fixed"),
+                            ("report_id", "=", report.id),
+                        ]
+                    )
+                    remaining_pages = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "remaining"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
+                    expression = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "expression"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
 
                 company_background = self._context.get("background_company")
                 company_background_img = (
@@ -417,12 +474,14 @@ class IrActionsReport(models.Model):
                 if report.is_bg_per_lang:
                     lang_code = report.get_lang()
                     custom_bg_lang = company_background.bg_per_lang_ids.filtered(
-                        lambda l: l.lang_id.code == lang_code
+                        lambda lang: lang.lang_id.code == lang_code
                     )
                 # End. #22260
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
-                    if first_page and i == 0:
+                    if report.custom_report_type == "dynamic_per_report_company_lang":
+                        watermark = lang_domain
+                    elif first_page and i == 0:
                         if first_page.fall_back_to_company and company_background:
                             # Start. #22260
                             # If is_bg_per_lang then get custom bg from the company.
@@ -603,7 +662,7 @@ class IrActionsReport(models.Model):
         for temporary_file in temporary_files:
             try:
                 os.unlink(temporary_file)
-            except (OSError, IOError):  # noqa: disable=B014
+            except OSError:  # pylint: disable=B014
                 _logger.error("Error when trying to remove file %s" % temporary_file)
 
         return pdf_content
