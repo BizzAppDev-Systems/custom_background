@@ -212,10 +212,10 @@ class IrActionsReport(models.Model):
         lang_code = False
         # If partner_id field in the model and partner is set in the model the consider
         # partner's language.
-        # NOTE: Used "record_ids[-1]" to avoid loop, if use loop then always set last
+        # NOTE: Used "record_ids[:1]" to avoid loop, if use loop then always set last
         # record partner's language.
-        if "partner_id" in model._fields and record_ids[-1].partner_id:
-            partner_lang = record_ids[-1].partner_id.lang
+        if "partner_id" in model._fields and record_ids[:1].partner_id:
+            partner_lang = record_ids[:1].partner_id.lang
             lang_code = partner_lang if partner_lang else "en_US"
         else:
             # If partner_id field is not in model or partner_id is not set then consider
