@@ -419,7 +419,7 @@ class IrActionsReport(models.Model):
                 pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
 
                 # Call method for get domain related to the languages. #22260
-                lang_domain = report.get_bg_per_lang()
+                lang_domain = report.with_context(**self.env.context).get_bg_per_lang()
 
                 first_page = (
                     last_page
@@ -606,7 +606,9 @@ class IrActionsReport(models.Model):
                     # 222760 Starts.If background per lang is True then call method for
                     # get custom background based on different languages.
                     if report.is_bg_per_lang:
-                        custom_background = report.get_bg_per_lang()
+                        custom_background = report.with_context(
+                            **self.env.context
+                        ).get_bg_per_lang()
                     # 222760 Ends.
                     else:
                         custom_background = report.custom_report_background_image
@@ -627,7 +629,9 @@ class IrActionsReport(models.Model):
                     # 222760 Starts. If background per lang is True then call method for
                     # get custom background from company based on different languages.
                     if report.is_bg_per_lang:
-                        custom_background = report.get_bg_per_lang()
+                        custom_background = report.with_context(
+                            **self.env.context
+                        ).get_bg_per_lang()
                     # 222760 Ends.
                     else:
                         custom_background = company_id.custom_report_background_image
