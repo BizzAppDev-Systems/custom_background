@@ -35,7 +35,7 @@ repos:
       - id: autoflake
         args: ["-i", "--ignore-init-module-imports"]
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 22.3.0
     hooks:
       - id: black
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -83,14 +83,14 @@ repos:
     hooks:
       - id: pyupgrade
   - repo: https://github.com/PyCQA/isort
-    rev: 5.5.1
+    rev: 5.12.0
     hooks:
       - id: isort
         name: isort except __init__.py
         args:
           - --settings=.
         exclude: /__init__\.py$
-  - repo: https://gitlab.com/PyCQA/flake8
+  - repo: https://github.com/PyCQA/flake8
     rev: 3.8.3
     hooks:
       - id: flake8
