@@ -12,22 +12,22 @@
                         <separator
                             string="Custom Background Image"
                             colspan="2"
-                            attrs="{'invisible': [('is_bg_per_lang', '=', True)]}"
+                            invisible="is_bg_per_lang"
                         />
                         <field
                             name="custom_report_background_image"
-                            attrs="{'invisible': [('is_bg_per_lang', '=', True)]}"
+                            invisible="is_bg_per_lang"
                         />
                     </group>
                     <!-- New o2m field for configure custom bg based on different languages. #22260 -->
                     <separator
                         string="Custom Background Image Per Language"
                         colspan="2"
-                        attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
+                        invisible="not is_bg_per_lang"
                     />
                     <field
                         name="bg_per_lang_ids"
-                        attrs="{'invisible': [('is_bg_per_lang', '!=', True)]}"
+                        invisible="not is_bg_per_lang"
                         widget="one2many"
                         nolabel="1"
                     >
