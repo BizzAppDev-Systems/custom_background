@@ -10,26 +10,20 @@
                 <field name="custom_report_background" select="1" />
                 <field
                     name="custom_report_type"
-                    attrs="{'invisible':
-                    [('custom_report_background', '!=', True)]}"
+                    invisible="not custom_report_background"
                 />
                 <!-- Added is_bg_per_lang related domain. #22260 -->
                 <field
                     name="custom_report_background_image"
-                    attrs="{'invisible': ['|', '|', ('custom_report_type','!=',
-                    'report'), ('custom_report_background', '!=', True), ('is_bg_per_lang', '=', True)]}"
+                    invisible="custom_report_type != 'report' or not custom_report_background or is_bg_per_lang"
                 />
                 <!-- New field. #22260 -->
-                <field
-                    name="is_bg_per_lang"
-                    attrs="{'invisible': [('custom_report_background', '=', False)]}"
-                />
+                <field name="is_bg_per_lang" invisible="not custom_report_background" />
             </xpath>
             <xpath expr="//notebook" position="inside">
                 <page
                     string="Background Configuration"
-                    attrs="{'invisible':
-                    [('custom_report_type','!=', 'dynamic')]}"
+                    invisible="custom_report_type != 'dynamic'"
                 >
                     <field name="background_ids">
                         <form>
@@ -40,11 +34,11 @@
                                         <field name="fall_back_to_company" />
                                         <field
                                             name="page_number"
-                                            attrs="{'invisible': [('type', '!=', 'fixed')]}"
+                                            invisible="type != 'fixed'"
                                         />
                                         <field
                                             name="page_expression"
-                                            attrs="{'invisible': [('type', '!=', 'expression')]}"
+                                            invisible="type != 'expression'"
                                         />
                                     </group>
                                     <group>
@@ -57,7 +51,8 @@
                                         <!-- New field. #22260 -->
                                         <field
                                             name="lang_id"
-                                            attrs="{'readonly': [('parent.is_bg_per_lang', '!=', True)], 'required': [('parent.is_bg_per_lang', '=', True)]}"
+                                            readonly="not parent.is_bg_per_lang"
+                                            required="parent.is_bg_per_lang"
                                         />
                                         <field name="report_id" invisible="1" />
                                     </group>
@@ -66,13 +61,13 @@
                         </form>
                         <tree>
                             <field name="type" />
-                            <field name="page_number" invisible="1" />
-                            <field name="page_expression" invisible="1" />
+                            <field name="page_number" column_invisible="True" />
+                            <field name="page_expression" column_invisible="True" />
                             <!-- New field. #22260 -->
                             <field name="file_name" string="Background PDF" />
                             <!-- New field. #22260 -->
                             <field name="lang_id" />
-                            <field name="report_id" invisible="1" />
+                            <field name="report_id" column_invisible="True" />
                         </tree>
                     </field>
                     <i
@@ -176,7 +171,7 @@
                 <!-- New Page for configure custom BG per Language. #22260 -->
                 <page
                     string="Background Configuration Per Language"
-                    attrs="{'invisible': ['|', '|', ('is_bg_per_lang', '!=', True), ('custom_report_background', '!=', True), ('custom_report_type', '!=', 'report')]}"
+                    invisible="not is_bg_per_lang or not custom_report_background or not custom_report_type"
                 >
                     <field name="bg_per_lang_ids">
                         <form>
@@ -200,7 +195,7 @@
                  <!-- Added New Page for Configure Custom BG per Company and per Language. #T5886 -->
                 <page
                     string="Company Background Configuration Per Language"
-                    attrs="{'invisible': ['|', ('custom_report_background', '!=', True), ('custom_report_type', '!=', 'dynamic_per_report_company_lang')]}"
+                    invisible="not custom_report_background or custom_report_type != 'dynamic_per_report_company_lang'"
                 >
                     <field name="per_report_com_lang_bg_ids">
                         <form>

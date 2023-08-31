@@ -8,13 +8,13 @@ class ReportBackgroundLang(models.Model):
 
     # New fields. #22260
     lang_id = fields.Many2one(
-        "res.lang",
-        required=True,
-        string="Language",
+        comodel_name="res.lang", required=True, string="Language", ondelete="cascade"
     )
     background_pdf = fields.Binary(string="Background PDF", required=True)
     file_name = fields.Char()
-    report_id = fields.Many2one("ir.actions.report", string="Report")
+    report_id = fields.Many2one(
+        comodel_name="ir.actions.report", string="Report", ondelete="cascade"
+    )
     company_id = fields.Many2one(
         "res.company",
         string="Company",
