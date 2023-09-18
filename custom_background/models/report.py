@@ -14,8 +14,10 @@ from odoo.exceptions import UserError
 from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
+import fitz
 
 _logger = logging.getLogger(__name__)
+
 
 try:
     createBarcodeDrawing(
@@ -52,6 +54,8 @@ class ReportBackgroundLine(models.Model):
             ("first_page", "First Page"),
             ("last_page", "Last Page"),
             ("remaining", "Remaining pages"),
+            ("append", "Append"),
+            ("prepend", "Prepend")
         ]
     )
     background_pdf = fields.Binary(string="Background PDF")
@@ -103,6 +107,31 @@ class IrActionsReport(models.Model):
         "report_id",
         string="Per Report Company Language Background",
     )
+
+    def merge_pdfs(self, file_name, datas):
+        """write new method for merge all pdfs and images with
+        supported all pdf versions. #16"""
+        # Create an empty PDF document to start with.
+        output = fitz.open()
+        if not len(datas):
+            return
+        # Loop through each base64-encoded PDF.
+        for data in datas:
+            # Open the PDF.
+            doc = fitz.open(file_name, data)
+
+            # Insert the PDF into the output document.
+            output.insert_pdf(doc)
+
+            # Close the document to free up resources.
+            doc.close()
+
+        # Write the output PDF to bytes.
+        output_pdf_bytes = output.write()
+
+        # Close the output document.
+        output.close()
+        return output_pdf_bytes
 
     def get_company_without_custom_bg(self):
         """New method for search and get company in which custom bg per language is not
@@ -434,6 +463,7 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
+                    print("\n\n\n ----- first page ---", first_page)
                     last_page = report.background_ids.search(
                         lang_domain
                         + [
@@ -465,11 +495,39 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
+                    append_attachment = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "append"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
+                    abc = []
+                    sale_report  = (
+                        picking.env.ref("maxicom_layouts.action_report_packinglist_maxicom")
+                        .sudo()
+                        ._render_qweb_pdf(picking.id)[0]
+                    )
+                    append_attachment |= sale_report
+                    print("\n\n\n ---- append_attachment ---", append_attachment)
+                    filecontent = report.merge_pdfs(report.name, append_attachment)
+                    prepend_attachment = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "prepend"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
+                    print("\n\n\n ---- prepend_attachment ----", prepend_attachment)
 
                 company_background = self._context.get("background_company")
+                print("\n\n\n --- company_background ---", company_background)
                 company_background_img = (
                     company_background.custom_report_background_image
                 )
+                print("\n\n\n ---- report ---", report)
                 # Start. #22260
                 if report.is_bg_per_lang:
                     lang_code = report.get_lang()
@@ -477,6 +535,8 @@ class IrActionsReport(models.Model):
                         lambda lang: lang.lang_id.code == lang_code
                     )
                 # End. #22260
+                print("\n\n\n --- pdf_reader_content ---", pdf_reader_content.getNumPages())
+                # stop
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
                     if report.custom_report_type == "dynamic_per_report_company_lang":
@@ -582,6 +642,7 @@ class IrActionsReport(models.Model):
                             elif remaining_pages.background_pdf:
                                 watermark = remaining_pages.background_pdf
                     if watermark:
+                        print("\n\n\n ---- report name ----", report, report)
                         page = report.add_pdf_watermarks(
                             watermark,
                             pdf_reader_content.getPage(i),
