@@ -4,6 +4,8 @@ import logging
 import os
 import subprocess
 import tempfile
+import io
+import img2pdf
 from contextlib import closing
 
 from PyPDF2 import PdfFileReader, PdfFileWriter
@@ -14,6 +16,7 @@ from odoo.exceptions import UserError
 from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
+from PyPDF2.utils import PdfReadError
 import fitz
 
 _logger = logging.getLogger(__name__)
@@ -463,7 +466,6 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
-                    print("\n\n\n ----- first page ---", first_page)
                     last_page = report.background_ids.search(
                         lang_domain
                         + [
@@ -503,15 +505,6 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
-                    abc = []
-                    sale_report  = (
-                        picking.env.ref("maxicom_layouts.action_report_packinglist_maxicom")
-                        .sudo()
-                        ._render_qweb_pdf(picking.id)[0]
-                    )
-                    append_attachment |= sale_report
-                    print("\n\n\n ---- append_attachment ---", append_attachment)
-                    filecontent = report.merge_pdfs(report.name, append_attachment)
                     prepend_attachment = report.background_ids.search(
                         lang_domain
                         + [
@@ -520,14 +513,11 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
-                    print("\n\n\n ---- prepend_attachment ----", prepend_attachment)
 
                 company_background = self._context.get("background_company")
-                print("\n\n\n --- company_background ---", company_background)
                 company_background_img = (
                     company_background.custom_report_background_image
                 )
-                print("\n\n\n ---- report ---", report)
                 # Start. #22260
                 if report.is_bg_per_lang:
                     lang_code = report.get_lang()
@@ -535,8 +525,6 @@ class IrActionsReport(models.Model):
                         lambda lang: lang.lang_id.code == lang_code
                     )
                 # End. #22260
-                print("\n\n\n --- pdf_reader_content ---", pdf_reader_content.getNumPages())
-                # stop
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
                     if report.custom_report_type == "dynamic_per_report_company_lang":
@@ -642,7 +630,6 @@ class IrActionsReport(models.Model):
                             elif remaining_pages.background_pdf:
                                 watermark = remaining_pages.background_pdf
                     if watermark:
-                        print("\n\n\n ---- report name ----", report, report)
                         page = report.add_pdf_watermarks(
                             watermark,
                             pdf_reader_content.getPage(i),
@@ -723,6 +710,52 @@ class IrActionsReport(models.Model):
         with open(pdf_report_path, "rb") as pdf_document:
             pdf_content = pdf_document.read()
 
+        # Customization start
+        data = []
+        append_data_attachment = append_attachment.background_pdf
+        prepend_data_attachment = prepend_attachment.background_pdf
+
+        if prepend_attachment and prepend_data_attachment:
+            if prepend_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
+                try:
+                    data.append(base64.b64decode(prepend_data_attachment))
+                except PdfReadError:
+                    pass
+            elif (
+                prepend_attachment.file_name.split(".")[-1:][0].lower() == "png"
+                or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
+                or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
+            ):
+                try:
+                    image_buffer = io.BytesIO(base64.b64decode(prepend_data_attachment))
+                    image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
+                    data.append(base64.b64decode(image_pdf))
+                except PdfReadError:
+                    pass
+            data.append(pdf_content)
+
+        if append_attachment and append_data_attachment:
+            if pdf_content not in data:
+                data.append(pdf_content)
+            if append_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
+                try:
+                    data.append(base64.b64decode(append_data_attachment))
+                except PdfReadError:
+                    pass
+            elif (
+                append_attachment.file_name.split(".")[-1:][0].lower() == "png"
+                or append_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
+                or append_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
+            ):
+                try:
+                    image_buffer = io.BytesIO(base64.b64decode(append_data_attachment))
+                    image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
+                    data.append(base64.b64decode(image_pdf))
+                except PdfReadError:
+                    pass
+
+        filecontent = self.merge_pdfs("abc.pdf", data)
+
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:
             try:
@@ -730,4 +763,4 @@ class IrActionsReport(models.Model):
             except OSError:  # pylint: disable=B014
                 _logger.error("Error when trying to remove file %s" % temporary_file)
 
-        return pdf_content
+        return filecontent
