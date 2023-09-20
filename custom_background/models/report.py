@@ -1,23 +1,20 @@
 # See LICENSE file for full copyright and licensing details.
 import base64
-import io
 import logging
 import os
 import subprocess
 import tempfile
 from contextlib import closing
 
-import img2pdf
 from PyPDF2 import PdfFileReader, PdfFileWriter
-from PyPDF2.utils import PdfReadError
 from reportlab.graphics.barcode import createBarcodeDrawing
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import pdf
 from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
-from odoo.tools import pdf
 
 _logger = logging.getLogger(__name__)
 
@@ -703,8 +700,8 @@ class IrActionsReport(models.Model):
                 if prepend_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
                     try:
                         data.append(base64.b64decode(prepend_data_attachment))
-                    except PdfReadError:
-                        pass
+                    except Exception:
+                        _logger.exception("test")
                 # store dynamic report data. #T6622
                 data.append(pdf_content)
 
@@ -714,8 +711,8 @@ class IrActionsReport(models.Model):
                 if append_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
                     try:
                         data.append(base64.b64decode(append_data_attachment))
-                    except PdfReadError:
-                        pass
+                    except Exception:
+                        _logger.exception("test")
 
             # call function for merge pdf reports and attachments. #T6622
             pdf_content = pdf.merge_pdf(data)
