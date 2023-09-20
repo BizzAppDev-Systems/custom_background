@@ -1,14 +1,16 @@
 # See LICENSE file for full copyright and licensing details.
 import base64
+import io
 import logging
 import os
 import subprocess
 import tempfile
-import io
-import img2pdf
 from contextlib import closing
 
+import fitz
+import img2pdf
 from PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2.utils import PdfReadError
 from reportlab.graphics.barcode import createBarcodeDrawing
 
 from odoo import api, fields, models
@@ -16,8 +18,6 @@ from odoo.exceptions import UserError
 from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
-from PyPDF2.utils import PdfReadError
-import fitz
 
 _logger = logging.getLogger(__name__)
 
@@ -50,6 +50,7 @@ class ReportBackgroundLine(models.Model):
     _description = "Report Background Line"
 
     page_number = fields.Integer()
+    # Added new type. #T6622
     type = fields.Selection(
         [
             ("fixed", "Fixed Page"),
@@ -58,7 +59,7 @@ class ReportBackgroundLine(models.Model):
             ("last_page", "Last Page"),
             ("remaining", "Remaining pages"),
             ("append", "Append"),
-            ("prepend", "Prepend")
+            ("prepend", "Prepend"),
         ]
     )
     background_pdf = fields.Binary(string="Background PDF")
@@ -113,7 +114,7 @@ class IrActionsReport(models.Model):
 
     def merge_pdfs(self, file_name, datas):
         """write new method for merge all pdfs and images with
-        supported all pdf versions. #16"""
+        supported all pdf versions. #T6622"""
         # Create an empty PDF document to start with.
         output = fitz.open()
         if not len(datas):
@@ -497,6 +498,7 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
+                    # search append attachment record. #T6622
                     append_attachment = report.background_ids.search(
                         lang_domain
                         + [
@@ -505,6 +507,7 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
+                    # search prepend attachment record. #T6622
                     prepend_attachment = report.background_ids.search(
                         lang_domain
                         + [
@@ -710,51 +713,65 @@ class IrActionsReport(models.Model):
         with open(pdf_report_path, "rb") as pdf_document:
             pdf_content = pdf_document.read()
 
-        # Customization start
-        data = []
-        append_data_attachment = append_attachment.background_pdf
-        prepend_data_attachment = prepend_attachment.background_pdf
+        # BAD Customization start. T6622
+        if (
+            report
+            and report.custom_report_background
+            and report.custom_report_type in ["dynamic"]
+        ):
+            data = []
+            append_data_attachment = append_attachment.background_pdf
+            prepend_data_attachment = prepend_attachment.background_pdf
 
-        if prepend_attachment and prepend_data_attachment:
-            if prepend_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
-                try:
-                    data.append(base64.b64decode(prepend_data_attachment))
-                except PdfReadError:
-                    pass
-            elif (
-                prepend_attachment.file_name.split(".")[-1:][0].lower() == "png"
-                or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
-                or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
-            ):
-                try:
-                    image_buffer = io.BytesIO(base64.b64decode(prepend_data_attachment))
-                    image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
-                    data.append(base64.b64decode(image_pdf))
-                except PdfReadError:
-                    pass
-            data.append(pdf_content)
-
-        if append_attachment and append_data_attachment:
-            if pdf_content not in data:
+            if prepend_attachment and prepend_data_attachment:
+                # store prepend data. #T6622
+                if prepend_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
+                    try:
+                        data.append(base64.b64decode(prepend_data_attachment))
+                    except PdfReadError:
+                        pass
+                elif (
+                    prepend_attachment.file_name.split(".")[-1:][0].lower() == "png"
+                    or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
+                    or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
+                ):
+                    try:
+                        image_buffer = io.BytesIO(
+                            base64.b64decode(prepend_data_attachment)
+                        )
+                        image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
+                        data.append(base64.b64decode(image_pdf))
+                    except PdfReadError:
+                        pass
+                # store dynamic report data. #T6622
                 data.append(pdf_content)
-            if append_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
-                try:
-                    data.append(base64.b64decode(append_data_attachment))
-                except PdfReadError:
-                    pass
-            elif (
-                append_attachment.file_name.split(".")[-1:][0].lower() == "png"
-                or append_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
-                or append_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
-            ):
-                try:
-                    image_buffer = io.BytesIO(base64.b64decode(append_data_attachment))
-                    image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
-                    data.append(base64.b64decode(image_pdf))
-                except PdfReadError:
-                    pass
 
-        filecontent = self.merge_pdfs("abc.pdf", data)
+            if append_attachment and append_data_attachment:
+                if pdf_content not in data:
+                    data.append(pdf_content)
+                if append_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
+                    try:
+                        data.append(base64.b64decode(append_data_attachment))
+                    except PdfReadError:
+                        pass
+                elif (
+                    append_attachment.file_name.split(".")[-1:][0].lower() == "png"
+                    or append_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
+                    or append_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
+                ):
+                    try:
+                        image_buffer = io.BytesIO(
+                            base64.b64decode(append_data_attachment)
+                        )
+                        image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
+                        data.append(base64.b64decode(image_pdf))
+                    except PdfReadError:
+                        pass
+
+            # Added pdf extention. #T6622
+            report_file_name = (report.name) + ".pdf"
+            # call function for merge pdf reports and attachments. #T6622
+            pdf_content = self.merge_pdfs(report_file_name, data)
 
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:
@@ -763,4 +780,4 @@ class IrActionsReport(models.Model):
             except OSError:  # pylint: disable=B014
                 _logger.error("Error when trying to remove file %s" % temporary_file)
 
-        return filecontent
+        return pdf_content
