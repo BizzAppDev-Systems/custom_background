@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 from contextlib import closing
 
-import fitz
 import img2pdf
 from PyPDF2 import PdfFileReader, PdfFileWriter
 from PyPDF2.utils import PdfReadError
@@ -18,6 +17,7 @@ from odoo.exceptions import UserError
 from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
+from odoo.tools import pdf
 
 _logger = logging.getLogger(__name__)
 
@@ -111,31 +111,6 @@ class IrActionsReport(models.Model):
         "report_id",
         string="Per Report Company Language Background",
     )
-
-    def merge_pdfs(self, file_name, datas):
-        """write new method for merge all pdfs and images with
-        supported all pdf versions. #T6622"""
-        # Create an empty PDF document to start with.
-        output = fitz.open()
-        if not len(datas):
-            return
-        # Loop through each base64-encoded PDF.
-        for data in datas:
-            # Open the PDF.
-            doc = fitz.open(file_name, data)
-
-            # Insert the PDF into the output document.
-            output.insert_pdf(doc)
-
-            # Close the document to free up resources.
-            doc.close()
-
-        # Write the output PDF to bytes.
-        output_pdf_bytes = output.write()
-
-        # Close the output document.
-        output.close()
-        return output_pdf_bytes
 
     def get_company_without_custom_bg(self):
         """New method for search and get company in which custom bg per language is not
@@ -768,10 +743,8 @@ class IrActionsReport(models.Model):
                     except PdfReadError:
                         pass
 
-            # Added pdf extention. #T6622
-            report_file_name = (report.name) + ".pdf"
             # call function for merge pdf reports and attachments. #T6622
-            pdf_content = self.merge_pdfs(report_file_name, data)
+            pdf_content = pdf.merge_pdf(data)
 
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:
