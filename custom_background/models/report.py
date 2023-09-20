@@ -701,7 +701,7 @@ class IrActionsReport(models.Model):
                     try:
                         data.append(base64.b64decode(prepend_data_attachment))
                     except Exception:
-                        _logger.exception("test")
+                        _logger.exception(_("Wrong Prepend content"))
                 # store dynamic report data. #T6622
                 data.append(pdf_content)
 
@@ -712,7 +712,7 @@ class IrActionsReport(models.Model):
                     try:
                         data.append(base64.b64decode(append_data_attachment))
                     except Exception:
-                        _logger.exception("test")
+                        _logger.exception(_("Wrong append content"))
 
             # call function for merge pdf reports and attachments. #T6622
             pdf_content = pdf.merge_pdf(data)
