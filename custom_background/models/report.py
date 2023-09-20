@@ -705,19 +705,6 @@ class IrActionsReport(models.Model):
                         data.append(base64.b64decode(prepend_data_attachment))
                     except PdfReadError:
                         pass
-                elif (
-                    prepend_attachment.file_name.split(".")[-1:][0].lower() == "png"
-                    or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
-                    or prepend_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
-                ):
-                    try:
-                        image_buffer = io.BytesIO(
-                            base64.b64decode(prepend_data_attachment)
-                        )
-                        image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
-                        data.append(base64.b64decode(image_pdf))
-                    except PdfReadError:
-                        pass
                 # store dynamic report data. #T6622
                 data.append(pdf_content)
 
@@ -727,19 +714,6 @@ class IrActionsReport(models.Model):
                 if append_attachment.file_name.split(".")[-1:][0].lower() == "pdf":
                     try:
                         data.append(base64.b64decode(append_data_attachment))
-                    except PdfReadError:
-                        pass
-                elif (
-                    append_attachment.file_name.split(".")[-1:][0].lower() == "png"
-                    or append_attachment.file_name.split(".")[-1:][0].lower() == "jpg"
-                    or append_attachment.file_name.split(".")[-1:][0].lower() == "jpeg"
-                ):
-                    try:
-                        image_buffer = io.BytesIO(
-                            base64.b64decode(append_data_attachment)
-                        )
-                        image_pdf = base64.b64encode(img2pdf.convert(image_buffer))
-                        data.append(base64.b64decode(image_pdf))
                     except PdfReadError:
                         pass
 
