@@ -206,6 +206,7 @@
                         <form>
                             <group>
                                 <group>
+                                    <field name="type_attachment" />
                                     <field name="lang_id" />
                                     <field name="company_id" />
                                 </group>
@@ -216,6 +217,7 @@
                             </group>
                         </form>
                         <tree>
+                            <field name="type_attachment" />
                             <field name="lang_id" />
                             <field name="company_id" />
                             <field name="file_name" string="Background PDF" />

@@ -479,17 +479,3 @@ msgstr "Toevoegen"
 #: model:ir.model.fields.selection,name:custom_background.selection__report_background_line__type__prepend
 msgid "Prepend"
 msgstr "voorgaan"
-
-#. module: custom_background
-#. odoo-python
-#: code:addons/custom_background/models/report.py:0
-#, python-format
-msgid "Wrong Prepend content"
-msgstr "Verkeerde inhoud vooraf"
-
-#. module: custom_background
-#. odoo-python
-#: code:addons/custom_background/models/report.py:0
-#, python-format
-msgid "Wrong append content"
-msgstr "Verkeerde inhoud toegevoegd"
