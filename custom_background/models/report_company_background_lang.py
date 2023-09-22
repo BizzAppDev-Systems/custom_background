@@ -20,5 +20,5 @@ class ReportCompanyBackgroundLang(models.Model):
             ("append", "Append"),
             ("prepend", "Prepend"),
         ],
-        string="Type"
+        string="Type",
     )

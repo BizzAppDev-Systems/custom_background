@@ -252,7 +252,7 @@ class IrActionsReport(models.Model):
             if self.is_bg_per_lang:
                 lang_domain = [
                     ("lang_id.code", "=", lang_code),
-                    ("company_id.id", "=", company_background.id)
+                    ("company_id.id", "=", company_background.id),
                 ]
             else:
                 lang_domain = [
