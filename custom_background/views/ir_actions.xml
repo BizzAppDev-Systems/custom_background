@@ -198,6 +198,7 @@
                 </page>
 
                  <!-- Added New Page for Configure Custom BG per Company and per Language. #T5886 -->
+                 <!-- Added new field. #T6622 -->
                 <page
                     string="Company Background Configuration Per Language"
                     attrs="{'invisible': ['|', ('custom_report_background', '!=', True), ('custom_report_type', '!=', 'dynamic_per_report_company_lang')]}"
@@ -206,6 +207,7 @@
                         <form>
                             <group>
                                 <group>
+                                    <field name="type_attachment" />
                                     <field name="lang_id" />
                                     <field name="company_id" />
                                 </group>
@@ -216,6 +218,7 @@
                             </group>
                         </form>
                         <tree>
+                            <field name="type_attachment" />
                             <field name="lang_id" />
                             <field name="company_id" />
                             <field name="file_name" string="Background PDF" />

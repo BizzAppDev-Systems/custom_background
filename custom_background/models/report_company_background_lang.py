@@ -14,3 +14,11 @@ class ReportCompanyBackgroundLang(models.Model):
         "ir.actions.report", string="Report", ondelete="cascade"
     )
     company_id = fields.Many2one("res.company", string="Company", ondelete="cascade")
+    # Added new field. #T6622
+    type_attachment = fields.Selection(
+        [
+            ("append", "Append"),
+            ("prepend", "Prepend"),
+        ],
+        string="Type",
+    )

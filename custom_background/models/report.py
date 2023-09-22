@@ -11,11 +11,13 @@ from reportlab.graphics.barcode import createBarcodeDrawing
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import pdf
 from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
 
 _logger = logging.getLogger(__name__)
+
 
 try:
     createBarcodeDrawing(
@@ -45,6 +47,7 @@ class ReportBackgroundLine(models.Model):
     _description = "Report Background Line"
 
     page_number = fields.Integer()
+    # Added new type. #T6622
     type = fields.Selection(
         [
             ("fixed", "Fixed Page"),
@@ -52,6 +55,8 @@ class ReportBackgroundLine(models.Model):
             ("first_page", "First Page"),
             ("last_page", "Last Page"),
             ("remaining", "Remaining pages"),
+            ("append", "Append"),
+            ("prepend", "Prepend"),
         ]
     )
     background_pdf = fields.Binary(string="Background PDF")
@@ -241,6 +246,15 @@ class IrActionsReport(models.Model):
                     ("lang_id", "=", False),
                 ]
             return lang_domain
+        # If custom_report_type is dynamic per report company lang then set
+        # language and company related domains. #T6622
+        if self.custom_report_type == "dynamic_per_report_company_lang":
+            lang_domain = [
+                ("lang_id.code", "=", lang_code),
+                ("company_id", "=", company_background.id),
+            ]
+            return lang_domain
+
         # Call the method for get the custom background per company
         # and per Lang. #T5886
         if self.custom_report_type == "dynamic_per_report_company_lang":
@@ -406,6 +420,7 @@ class IrActionsReport(models.Model):
                 if err:
                     _logger.warning("wkhtmltopdf: %s" % err)
             # Dynamic Type and Background Per Report - Company - Lang #T5886
+
             if (
                 report
                 and report.custom_report_background
@@ -465,6 +480,24 @@ class IrActionsReport(models.Model):
                         ],
                         limit=1,
                     )
+                    # search append attachment record. #T6622
+                    append_attachment = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "append"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
+                    # search prepend attachment record. #T6622
+                    prepend_attachment = report.background_ids.search(
+                        lang_domain
+                        + [
+                            ("type", "=", "prepend"),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
 
                 company_background = self._context.get("background_company")
                 company_background_img = (
@@ -479,8 +512,17 @@ class IrActionsReport(models.Model):
                 # End. #22260
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
+                    # Bizzappdev customization start. #T6622
                     if report.custom_report_type == "dynamic_per_report_company_lang":
-                        watermark = lang_domain
+                        watermark_attachment = report.per_report_com_lang_bg_ids.search(
+                            lang_domain
+                            + [
+                                ("type_attachment", "=", False),
+                                ("report_id", "=", report.id),
+                            ],
+                            limit=1,
+                        )
+                        watermark = watermark_attachment.background_pdf
                     elif first_page and i == 0:
                         if first_page.fall_back_to_company and company_background:
                             # Start. #22260
@@ -661,6 +703,50 @@ class IrActionsReport(models.Model):
 
         with open(pdf_report_path, "rb") as pdf_document:
             pdf_content = pdf_document.read()
+
+        # BAD Customization start. T6622
+        if (
+            report
+            and report.custom_report_background
+            and report.custom_report_type
+            in ["dynamic", "dynamic_per_report_company_lang"]
+        ):
+            if report.custom_report_type == "dynamic_per_report_company_lang":
+                # search append attachment record. #T6622
+                append_attachment = report.per_report_com_lang_bg_ids.search(
+                    lang_domain
+                    + [
+                        ("type_attachment", "=", "append"),
+                        ("report_id", "=", report.id),
+                    ],
+                    limit=1,
+                )
+                # search prepend attachment record. #T6622
+                prepend_attachment = report.per_report_com_lang_bg_ids.search(
+                    lang_domain
+                    + [
+                        ("type_attachment", "=", "prepend"),
+                        ("report_id", "=", report.id),
+                    ],
+                    limit=1,
+                )
+
+            if append_attachment or prepend_attachment:
+                data = []
+                append_data_attachment = append_attachment.background_pdf
+                prepend_data_attachment = prepend_attachment.background_pdf
+
+                if prepend_attachment and prepend_data_attachment:
+                    data.append(base64.b64decode(prepend_data_attachment))
+                    data.append(pdf_content)
+
+                if append_attachment and append_data_attachment:
+                    if pdf_content not in data:
+                        data.append(pdf_content)
+                    data.append(base64.b64decode(append_data_attachment))
+
+                # call function for merge pdf reports and attachments. #T6622
+                pdf_content = pdf.merge_pdf(data)
 
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:
