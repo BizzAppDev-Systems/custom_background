@@ -249,15 +249,10 @@ class IrActionsReport(models.Model):
         # If custom_report_type is dynamic per report company lang then set
         # language and company related domains. #T6622
         if self.custom_report_type == "dynamic_per_report_company_lang":
-            if self.is_bg_per_lang:
-                lang_domain = [
-                    ("lang_id.code", "=", lang_code),
-                    ("company_id", "=", company_background.id),
-                ]
-            else:
-                lang_domain = [
-                    ("lang_id", "=", False),
-                ]
+            lang_domain = [
+                ("lang_id.code", "=", lang_code),
+                ("company_id", "=", company_background.id),
+            ]
             return lang_domain
 
         # Call the method for get the custom background per company
