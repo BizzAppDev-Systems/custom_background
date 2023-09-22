@@ -442,6 +442,7 @@ msgstr "Achtergrondregel per taal rapporteren"
 
 #. module: custom_background
 #: model:ir.model.fields,field_description:custom_background.field_report_background_line__type
+#: model:ir.model.fields,field_description:custom_background.field_report_company_background_lang__type_attachment
 msgid "Type"
 msgstr ""
 
@@ -470,12 +471,14 @@ msgstr ""
 "U kunt het achtergrondwatermerk in een rapport instellen op basis\n"
 "van de opties die zijn ingesteld op het tabblad “Achtergrondconfiguratie”."
 
-#. module: custom_background
+. module: custom_background
 #: model:ir.model.fields.selection,name:custom_background.selection__report_background_line__type__append
+#: model:ir.model.fields.selection,name:custom_background.selection__report_company_background_lang__type_attachment__append
 msgid "Append"
 msgstr "Toevoegen"
 
 #. module: custom_background
 #: model:ir.model.fields.selection,name:custom_background.selection__report_background_line__type__prepend
+#: model:ir.model.fields.selection,name:custom_background.selection__report_company_background_lang__type_attachment__prepend
 msgid "Prepend"
 msgstr "voorgaan"

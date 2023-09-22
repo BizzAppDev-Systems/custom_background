@@ -199,8 +199,6 @@ class IrActionsReport(models.Model):
         temp_back_id, temp_back_path = tempfile.mkstemp(
             suffix=".pdf", prefix="back_report.tmp."
         )
-        # print("\n\ncustom_back", custom_background_data)
-        # import pdb;pdb.set_trace()
         back_data = base64.b64decode(custom_background_data)
         with closing(os.fdopen(temp_back_id, "wb")) as back_file:
             back_file.write(back_data)
@@ -236,7 +234,7 @@ class IrActionsReport(models.Model):
         company_background = self._context.get("background_company")
         lang_code = self.get_lang()
         # If custom_report_type is dynamic then set language related domains.
-        if self.custom_report_type in ["dynamic", "dynamic_per_report_company_lang"]:
+        if self.custom_report_type == "dynamic":
             # If is_bg_per_lang true then set lang_code related domain.
             if self.is_bg_per_lang:
                 lang_domain = [
@@ -248,6 +246,20 @@ class IrActionsReport(models.Model):
                     ("lang_id", "=", False),
                 ]
             return lang_domain
+        # If custom_report_type is dynamic per report company lang then set
+        # language and company related domains. #T6622
+        if self.custom_report_type == "dynamic_per_report_company_lang":
+            if self.is_bg_per_lang:
+                lang_domain = [
+                    ("lang_id.code", "=", lang_code),
+                    ("company_id.id", "=", company_background.id)
+                ]
+            else:
+                lang_domain = [
+                    ("lang_id", "=", False),
+                ]
+            return lang_domain
+
         # Call the method for get the custom background per company
         # and per Lang. #T5886
         if self.custom_report_type == "dynamic_per_report_company_lang":
@@ -505,21 +517,17 @@ class IrActionsReport(models.Model):
                 # End. #22260
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
-                    # BAD start
+                    # Bizzappdev customization start. #T6622
                     if report.custom_report_type == "dynamic_per_report_company_lang":
                         watermark_attachment = report.per_report_com_lang_bg_ids.search(
                             lang_domain
                             + [
-                                ("type_attachment", "not in", ["append", "prepend"]),
+                                ("type_attachment", "=", False),
                                 ("report_id", "=", report.id),
                             ],
                             limit=1,
                         )
-                        print(
-                            "\n\n\n --- watermark_attachment ---", watermark_attachment
-                        )
                         watermark = watermark_attachment.background_pdf
-                        # watermark = False
                     elif first_page and i == 0:
                         if first_page.fall_back_to_company and company_background:
                             # Start. #22260
@@ -709,6 +717,7 @@ class IrActionsReport(models.Model):
             in ["dynamic", "dynamic_per_report_company_lang"]
         ):
             if report.custom_report_type == "dynamic_per_report_company_lang":
+                # search append attachment record. #T6622
                 append_attachment = report.per_report_com_lang_bg_ids.search(
                     lang_domain
                     + [
@@ -726,23 +735,23 @@ class IrActionsReport(models.Model):
                     ],
                     limit=1,
                 )
-                print("\n\n\n --- 11 - append attachment ---", append_attachment)
 
-            data = []
-            append_data_attachment = append_attachment.background_pdf
-            prepend_data_attachment = prepend_attachment.background_pdf
+            if append_attachment or prepend_attachment:
+                data = []
+                append_data_attachment = append_attachment.background_pdf
+                prepend_data_attachment = prepend_attachment.background_pdf
 
-            if prepend_attachment and prepend_data_attachment:
-                data.append(base64.b64decode(prepend_data_attachment))
-                data.append(pdf_content)
-
-            if append_attachment and append_data_attachment:
-                if pdf_content not in data:
+                if prepend_attachment and prepend_data_attachment:
+                    data.append(base64.b64decode(prepend_data_attachment))
                     data.append(pdf_content)
-                data.append(base64.b64decode(append_data_attachment))
 
-            # call function for merge pdf reports and attachments. #T6622
-            pdf_content = pdf.merge_pdf(data)
+                if append_attachment and append_data_attachment:
+                    if pdf_content not in data:
+                        data.append(pdf_content)
+                    data.append(base64.b64decode(append_data_attachment))
+
+                # call function for merge pdf reports and attachments. #T6622
+                pdf_content = pdf.merge_pdf(data)
 
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:
