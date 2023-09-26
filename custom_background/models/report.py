@@ -487,7 +487,6 @@ class IrActionsReport(models.Model):
                             ("type", "=", "append"),
                             ("report_id", "=", report.id),
                         ],
-                        limit=1,
                     )
                     # search prepend attachment record. #T6622
                     prepend_attachment = report.background_ids.search(
@@ -496,7 +495,6 @@ class IrActionsReport(models.Model):
                             ("type", "=", "prepend"),
                             ("report_id", "=", report.id),
                         ],
-                        limit=1,
                     )
 
                 company_background = self._context.get("background_company")
@@ -517,7 +515,7 @@ class IrActionsReport(models.Model):
                         watermark_attachment = report.per_report_com_lang_bg_ids.search(
                             lang_domain
                             + [
-                                ("type_attachment", "=", False),
+                                ("type_attachment", "=", "background"),
                                 ("report_id", "=", report.id),
                             ],
                             limit=1,
@@ -719,7 +717,6 @@ class IrActionsReport(models.Model):
                         ("type_attachment", "=", "append"),
                         ("report_id", "=", report.id),
                     ],
-                    limit=1,
                 )
                 # search prepend attachment record. #T6622
                 prepend_attachment = report.per_report_com_lang_bg_ids.search(
@@ -728,23 +725,19 @@ class IrActionsReport(models.Model):
                         ("type_attachment", "=", "prepend"),
                         ("report_id", "=", report.id),
                     ],
-                    limit=1,
                 )
 
             if append_attachment or prepend_attachment:
                 data = []
-                append_data_attachment = append_attachment.background_pdf
-                prepend_data_attachment = prepend_attachment.background_pdf
-
-                if prepend_attachment and prepend_data_attachment:
-                    data.append(base64.b64decode(prepend_data_attachment))
-                    data.append(pdf_content)
-
-                if append_attachment and append_data_attachment:
-                    if pdf_content not in data:
-                        data.append(pdf_content)
-                    data.append(base64.b64decode(append_data_attachment))
-
+                # Merge multiple prepend attachment. #T6622
+                for prepend_data in prepend_attachment:
+                    if prepend_data and prepend_data.background_pdf:
+                        data.append(base64.b64decode(prepend_data.background_pdf))
+                data.append(pdf_content)
+                # Merge multiple append attachment. #T6622
+                for append_data in append_attachment:
+                    if append_data and append_data.background_pdf:
+                        data.append(base64.b64decode(append_data.background_pdf))
                 # call function for merge pdf reports and attachments. #T6622
                 pdf_content = pdf.merge_pdf(data)
 

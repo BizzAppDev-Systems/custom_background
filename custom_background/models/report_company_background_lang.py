@@ -17,8 +17,10 @@ class ReportCompanyBackgroundLang(models.Model):
     # Added new field. #T6622
     type_attachment = fields.Selection(
         [
+            ("background", "Background"),
             ("append", "Append"),
             ("prepend", "Prepend"),
         ],
         string="Type",
+        default="background",
     )
