@@ -14,7 +14,7 @@ from reportlab.graphics.barcode import createBarcodeDrawing
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
-from odoo.tools import split_every
+from odoo.tools import pdf, split_every
 from odoo.tools.misc import find_in_path, ustr
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
@@ -71,13 +71,15 @@ class ReportBackgroundLine(models.Model):
 
     page_number = fields.Integer()
     # TODO after 17 release need to change field name to ttype.
-    type = fields.Selection(
+    type = fields.Selection(  # noqa: [W8113
         [
             ("fixed", "Fixed Page"),
             ("expression", "Expression"),
             ("first_page", "First Page"),
             ("last_page", "Last Page"),
             ("remaining", "Remaining pages"),
+            ("append", "Append"),
+            ("prepend", "Prepend"),
         ],
         string="Type",
     )
@@ -336,7 +338,7 @@ class IrActionsReport(models.Model):
             return default_custom_bg[:1].background_pdf
         return False
 
-    def _dynamic_background_per_report(self, report, pdf_report_path):
+    def _dynamic_background_per_report(self, report, pdf_report_path):  # noqa: C901
         """Dynamic Type and Background Per Report - Company - Lang #T5886"""
         if (
             report
@@ -408,7 +410,15 @@ class IrActionsReport(models.Model):
             for i in range(pdf_reader_content.getNumPages()):
                 watermark = ""
                 if report.custom_report_type == "dynamic_per_report_company_lang":
-                    watermark = lang_domain
+                    watermark_attachment = report.per_report_com_lang_bg_ids.search(
+                        lang_domain
+                        + [
+                            ("type_attachment", "=", False),
+                            ("report_id", "=", report.id),
+                        ],
+                        limit=1,
+                    )
+                    watermark = watermark_attachment.background_pdf
                 elif first_page and i == 0:
                     if first_page.fall_back_to_company and company_background:
                         # Start. #22260
@@ -578,7 +588,7 @@ class IrActionsReport(models.Model):
                 output.write(open(temp_report_path, "wb"))
                 pdf_report_path = temp_report_path
                 os.close(temp_report_id)
-        return pdf_report_path
+        return lang_domain, pdf_report_path
 
     @api.model
     def _run_wkhtmltopdf(  # noqa: C901
@@ -699,7 +709,7 @@ class IrActionsReport(models.Model):
                 if err:
                     _logger.warning("wkhtmltopdf: %s" % err)
             # BAD-CUSTOMIZATION START
-            pdf_report_path = self._dynamic_background_per_report(
+            lang_domain, pdf_report_path = self._dynamic_background_per_report(
                 report=report, pdf_report_path=pdf_report_path
             )
             # BAD-CUSTOMIZATION END
@@ -711,11 +721,75 @@ class IrActionsReport(models.Model):
         with open(pdf_report_path, "rb") as pdf_document:
             pdf_content = pdf_document.read()
 
+        # BAD Customization start. T6622
+        if (
+            report
+            and report.custom_report_background
+            and report.custom_report_type
+            in ["dynamic", "dynamic_per_report_company_lang"]
+        ):
+            if report.custom_report_type == "dynamic":
+                # search append attachment record. #T6622
+                append_attachment = report.background_ids.search(
+                    lang_domain
+                    + [
+                        ("type", "=", "append"),
+                        ("report_id", "=", report.id),
+                    ],
+                    limit=1,
+                )
+                # search prepend attachment record. #T6622
+                prepend_attachment = report.background_ids.search(
+                    lang_domain
+                    + [
+                        ("type", "=", "prepend"),
+                        ("report_id", "=", report.id),
+                    ],
+                    limit=1,
+                )
+            if report.custom_report_type == "dynamic_per_report_company_lang":
+                # search append attachment record. #T6622
+                append_attachment = report.per_report_com_lang_bg_ids.search(
+                    lang_domain
+                    + [
+                        ("type_attachment", "=", "append"),
+                        ("report_id", "=", report.id),
+                    ],
+                    limit=1,
+                )
+                # search prepend attachment record. #T6622
+                prepend_attachment = report.per_report_com_lang_bg_ids.search(
+                    lang_domain
+                    + [
+                        ("type_attachment", "=", "prepend"),
+                        ("report_id", "=", report.id),
+                    ],
+                    limit=1,
+                )
+            data = []
+            append_data_attachment = (
+                append_attachment.background_pdf if append_attachment else None
+            )
+            prepend_data_attachment = (
+                prepend_attachment.background_pdf if prepend_attachment else None
+            )
+
+            if prepend_data_attachment:
+                data.append(base64.b64decode(prepend_data_attachment))
+                data.append(pdf_content)
+            if append_data_attachment:
+                if pdf_content not in data:
+                    data.append(pdf_content)
+                data.append(base64.b64decode(append_data_attachment))
+
+            # call function for merge pdf reports and attachments. #T6622
+            pdf_content = pdf.merge_pdf(data)
+
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:
             try:
                 os.unlink(temporary_file)
-            except (OSError, IOError):
+            except OSError:
                 _logger.error("Error when trying to remove file %s" % temporary_file)
 
         return pdf_content
