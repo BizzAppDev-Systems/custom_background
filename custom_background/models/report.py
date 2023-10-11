@@ -279,28 +279,28 @@ class IrActionsReport(models.Model):
 
         # Get the custom background if company and Lang are both matched. #T5886
         custom_background = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: bg.lang_id.code == lang_code and bg.company_id.id == company.id
+            lambda bg: bg.type_attachment == "background" and bg.lang_id.code == lang_code and bg.company_id.id == company.id
         )
         if custom_background:
             return custom_background[:1].background_pdf
 
         # Get the custom background if company matched but Lang is not set. #T5886
         custom_bg_only_with_company = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: bg.company_id.id == company.id and not bg.lang_id.code
+            lambda bg: bg.type_attachment == "background" and bg.company_id.id == company.id and not bg.lang_id.code
         )
         if custom_bg_only_with_company:
             return custom_bg_only_with_company[:1].background_pdf
 
         # Get the custom background if Lang matched but company is not set. #T5886
         custom_bg_only_with_lang = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: bg.lang_id.code == lang_code and not bg.company_id
+            lambda bg: bg.type_attachment == "background" and bg.lang_id.code == lang_code and not bg.company_id
         )
         if custom_bg_only_with_lang:
             return custom_bg_only_with_lang[:1].background_pdf
 
         # Get the custom background if Lang is not set and company is not set. #T5886
         default_custom_bg = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: not bg.lang_id and not bg.company_id
+            lambda bg: bg.type_attachment == "background" and not bg.lang_id and not bg.company_id
         )
         if default_custom_bg:
             return default_custom_bg[:1].background_pdf
