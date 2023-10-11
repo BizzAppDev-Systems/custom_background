@@ -171,7 +171,7 @@
                 <!-- New Page for configure custom BG per Language. #22260 -->
                 <page
                     string="Background Configuration Per Language"
-                    invisible="not is_bg_per_lang or not custom_report_background or not custom_report_type"
+                    invisible="not is_bg_per_lang or not custom_report_background or custom_report_type != 'report'"
                 >
                     <field name="bg_per_lang_ids">
                         <form>
