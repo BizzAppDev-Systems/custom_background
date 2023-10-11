@@ -133,12 +133,13 @@ class IrActionsReport(models.Model):
     )
 
     def get_company_without_custom_bg(self):
-        """
-        New method for search and get company in which custom bg per language is not
-        set. #22260
-        """
-        company = self.env["res.company"].search(
-            ["|", ("is_bg_per_lang", "=", False), ("bg_per_lang_ids", "=", [])]
+        """New method for search and get company in which custom bg per language is not
+        set. #22260"""
+        res_company_env = self.env["res.company"].search([])
+        # Filtered company in which is_bg_per_lang is not set and
+        # attachment is not set.
+        company = res_company_env.filtered(
+            lambda c: not c.is_bg_per_lang or not c.bg_per_lang_ids
         )
         return company
 
@@ -178,10 +179,8 @@ class IrActionsReport(models.Model):
         # If type is 'company' or type is not set then search
         # configuration in all company.
         elif (
-            self.custom_report_type == "company"
-            or not self.custom_report_type
-            and self.get_company_without_custom_bg()
-        ):
+            self.custom_report_type == "company" or not self.custom_report_type
+        ) and self.get_company_without_custom_bg():
             # If any attachment not set in the any company then raise warning.
             raise UserError(
                 _(
@@ -715,7 +714,7 @@ class IrActionsReport(models.Model):
         for temporary_file in temporary_files:
             try:
                 os.unlink(temporary_file)
-            except (OSError, IOError):
+            except (OSError, IOError):  # noqa: B014
                 _logger.error("Error when trying to remove file %s" % temporary_file)
 
         return pdf_content
