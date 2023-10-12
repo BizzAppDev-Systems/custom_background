@@ -482,3 +482,8 @@ msgstr "Toevoegen"
 #: model:ir.model.fields.selection,name:custom_background.selection__report_company_background_lang__type_attachment__prepend
 msgid "Prepend"
 msgstr "voorgaan"
+
+#. module: custom_background
+#: model:ir.model.fields.selection,name:custom_background.selection__report_company_background_lang__type_attachment__background
+msgid "Background"
+msgstr "Achtergrond"
