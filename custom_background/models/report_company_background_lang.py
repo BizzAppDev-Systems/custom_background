@@ -16,8 +16,11 @@ class ReportCompanyBackgroundLang(models.Model):
     company_id = fields.Many2one("res.company", string="Company", ondelete="cascade")
     type_attachment = fields.Selection(
         [
+            ("background", "Background"),
             ("append", "Append"),
             ("prepend", "Prepend"),
         ],
         string="Type",
+        default="background",
+        required=True,
     )
