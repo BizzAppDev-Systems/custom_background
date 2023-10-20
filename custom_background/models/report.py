@@ -345,6 +345,7 @@ class IrActionsReport(models.Model):
 
     def _dynamic_background_per_report(self, report, pdf_report_path):  # noqa: C901
         """Dynamic Type and Background Per Report - Company - Lang #T5886"""
+        lang_domain = []
         if (
             report
             and report.custom_report_background
