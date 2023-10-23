@@ -23,7 +23,7 @@
             <xpath expr="//notebook" position="inside">
                 <page
                     string="Background Configuration"
-                    invisible="custom_report_type != 'dynamic'"
+                    invisible="custom_report_type != 'dynamic' or not custom_report_background"
                 >
                     <field name="background_ids">
                         <form>
