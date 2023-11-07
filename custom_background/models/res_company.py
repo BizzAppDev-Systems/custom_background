@@ -49,7 +49,7 @@ class ResCompany(models.Model):
         ):
             raise UserError(
                 _(
-                    "Please configure Custom Background Per Language beacuse "
+                    "Please configure Custom Background Per Language because "
                     "'Fall Back To Company' is set in the dynamic type report level!"
                 )
             )
@@ -58,7 +58,7 @@ class ResCompany(models.Model):
         if report_ids and not (self.is_bg_per_lang and self.bg_per_lang_ids):
             raise UserError(
                 _(
-                    "Please configure Custom Background Per Language beacuse "
+                    "Please configure Custom Background Per Language because "
                     "'From Company' type is set at the Report level!"
                 )
             )
