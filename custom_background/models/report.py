@@ -146,7 +146,11 @@ class IrActionsReport(models.Model):
         return company
 
     @api.constrains(
-        "is_bg_per_lang", "bg_per_lang_ids", "custom_report_type", "background_ids"
+        "is_bg_per_lang",
+        "bg_per_lang_ids",
+        "custom_report_type",
+        "background_ids",
+        "custom_report_background",
     )
     def _check_report_custom_bg_config(self):
         """
@@ -154,7 +158,7 @@ class IrActionsReport(models.Model):
         'report' & 'dynamic' type. #22260
         """
         # If is_bg_per_lang is false then return.
-        if not self.is_bg_per_lang:
+        if not self.is_bg_per_lang or not self.custom_report_background:
             return
         # If type is 'report' and custom bg per lang is not set then raise warning.
         if self.custom_report_type == "report" and not self.bg_per_lang_ids:
