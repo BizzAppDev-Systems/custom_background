@@ -28,8 +28,8 @@
             <xpath expr="//notebook" position="inside">
                 <page
                     string="Background Configuration"
-                    attrs="{'invisible':
-                    [('custom_report_type','!=', 'dynamic')]}"
+                    attrs="{'invisible': ['|', ('custom_report_type','!=','dynamic'),
+                    ('custom_report_background', '=', False)]}"
                 >
                     <field name="background_ids">
                         <form>
