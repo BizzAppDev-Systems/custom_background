@@ -379,7 +379,7 @@ msgstr "Paginanummer"
 #: code:addons/custom_background/models/res_company.py:0
 #, python-format
 msgid ""
-"Please configure Custom Background Per Language beacuse 'Fall Back To "
+"Please configure Custom Background Per Language because 'Fall Back To "
 "Company' is set in the dynamic type report level!"
 msgstr ""
 "Configureer a.u.b. aangepaste achtergrond per taal omdat 'Fall Back To "
@@ -389,7 +389,7 @@ msgstr ""
 #: code:addons/custom_background/models/res_company.py:0
 #, python-format
 msgid ""
-"Please configure Custom Background Per Language beacuse 'From Company' type "
+"Please configure Custom Background Per Language because 'From Company' type "
 "is set at the Report level!"
 msgstr ""
 "Configureer aangepaste achtergrond per taal vanwege het type 'Van bedrijf' "
