@@ -246,14 +246,6 @@ class IrActionsReport(models.Model):
                     ("lang_id", "=", False),
                 ]
             return lang_domain
-        # If custom_report_type is dynamic per report company lang then set
-        # language and company related domains. #T6622
-        if self.custom_report_type == "dynamic_per_report_company_lang":
-            lang_domain = [
-                ("lang_id.code", "=", lang_code),
-                ("company_id", "=", company_background.id),
-            ]
-            return lang_domain
 
         # Call the method for get the custom background per company
         # and per Lang. #T5886
@@ -287,28 +279,36 @@ class IrActionsReport(models.Model):
 
         # Get the custom background if company and Lang are both matched. #T5886
         custom_background = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: bg.lang_id.code == lang_code and bg.company_id.id == company.id
+            lambda bg: bg.type_attachment == "background"
+            and bg.lang_id.code == lang_code
+            and bg.company_id.id == company.id
         )
         if custom_background:
             return custom_background[:1].background_pdf
 
         # Get the custom background if company matched but Lang is not set. #T5886
         custom_bg_only_with_company = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: bg.company_id.id == company.id and not bg.lang_id.code
+            lambda bg: bg.type_attachment == "background"
+            and bg.company_id.id == company.id
+            and not bg.lang_id.code
         )
         if custom_bg_only_with_company:
             return custom_bg_only_with_company[:1].background_pdf
 
         # Get the custom background if Lang matched but company is not set. #T5886
         custom_bg_only_with_lang = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: bg.lang_id.code == lang_code and not bg.company_id
+            lambda bg: bg.type_attachment == "background"
+            and bg.lang_id.code == lang_code
+            and not bg.company_id
         )
         if custom_bg_only_with_lang:
             return custom_bg_only_with_lang[:1].background_pdf
 
         # Get the custom background if Lang is not set and company is not set. #T5886
         default_custom_bg = self.per_report_com_lang_bg_ids.filtered(
-            lambda bg: not bg.lang_id and not bg.company_id
+            lambda bg: bg.type_attachment == "background"
+            and not bg.lang_id
+            and not bg.company_id
         )
         if default_custom_bg:
             return default_custom_bg[:1].background_pdf
@@ -510,17 +510,8 @@ class IrActionsReport(models.Model):
                 # End. #22260
                 for i in range(pdf_reader_content.getNumPages()):
                     watermark = ""
-                    # Bizzappdev customization start. #T6622
                     if report.custom_report_type == "dynamic_per_report_company_lang":
-                        watermark_attachment = report.per_report_com_lang_bg_ids.search(
-                            lang_domain
-                            + [
-                                ("type_attachment", "=", "background"),
-                                ("report_id", "=", report.id),
-                            ],
-                            limit=1,
-                        )
-                        watermark = watermark_attachment.background_pdf
+                        watermark = lang_domain
                     elif first_page and i == 0:
                         if first_page.fall_back_to_company and company_background:
                             # Start. #22260
@@ -710,6 +701,7 @@ class IrActionsReport(models.Model):
             in ["dynamic", "dynamic_per_report_company_lang"]
         ):
             if report.custom_report_type == "dynamic_per_report_company_lang":
+                lang_domain = [("background_pdf", "!=", False)]
                 # search append attachment record. #T6622
                 append_attachment = report.per_report_com_lang_bg_ids.search(
                     lang_domain

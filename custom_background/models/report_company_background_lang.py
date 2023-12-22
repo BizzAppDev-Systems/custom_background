@@ -23,4 +23,5 @@ class ReportCompanyBackgroundLang(models.Model):
         ],
         string="Type",
         default="background",
+        required=True
     )
