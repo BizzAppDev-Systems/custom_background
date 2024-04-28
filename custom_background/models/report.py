@@ -216,6 +216,17 @@ class IrActionsReport(models.Model):
         custom_background = custom_bg_lang[:1].background_pdf
         return custom_background
 
+    def _build_wkhtmltopdf_args(
+        self, paperformat_id, landscape, specific_paperformat_args=None, set_viewport_size=False
+    ):
+        command_args = super()._build_wkhtmltopdf_args(
+            paperformat_id, landscape,
+            specific_paperformat_args=specific_paperformat_args,
+            set_viewport_size=set_viewport_size,
+        )
+        command_args.extend(['--print-media-type'])
+        return command_args
+
     @api.model
     def _run_wkhtmltopdf(
         self, bodies, header=None, footer=None, landscape=False,

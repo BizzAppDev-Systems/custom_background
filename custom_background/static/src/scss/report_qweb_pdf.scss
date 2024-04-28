@@ -1,3 +1,5 @@
-body {
-    background: transparent !important;
+@media print {
+    body {
+        background: transparent !important;
+    }
 }
