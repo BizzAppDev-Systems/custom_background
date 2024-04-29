@@ -1,7 +1,7 @@
 # See LICENSE file for full copyright and licensing details.
 {
     "name": "Custom Background",
-    "version": "15.0.0.0.1",
+    "version": "15.0.0.0.2",
     "author": "BizzAppDev",
     "website": "http://www.bizzappdev.com",
     "category": "GenericModules",
@@ -21,5 +21,5 @@
             "/custom_background/static/src/scss/report_qweb_pdf.scss",
         ],
     },
-    "license": "Other proprietary",
+    "license": "AGPL-3",
 }
