@@ -2,44 +2,18 @@
 import base64
 import logging
 import os
-import subprocess
 import tempfile
 from contextlib import closing
 
 from PyPDF2 import PdfFileReader, PdfFileWriter
-from reportlab.graphics.barcode import createBarcodeDrawing
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools import pdf
-from odoo.tools.misc import find_in_path
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.translate import _
 
 _logger = logging.getLogger(__name__)
-
-
-try:
-    createBarcodeDrawing(
-        "Code128",
-        value="foo",
-        format="png",
-        width=100,
-        height=100,
-        humanReadable=1,
-    ).asString("png")
-except Exception as e:
-    _logger.info(e)
-
-
-# --------------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------------
-_logger = logging.getLogger(__name__)
-
-
-def _get_wkhtmltopdf_bin():
-    return find_in_path("wkhtmltopdf")
 
 
 class ReportBackgroundLine(models.Model):
@@ -314,6 +288,22 @@ class IrActionsReport(models.Model):
             return default_custom_bg[:1].background_pdf
         return False
 
+    def _build_wkhtmltopdf_args(
+        self,
+        paperformat_id,
+        landscape,
+        specific_paperformat_args=None,
+        set_viewport_size=False,
+    ):
+        command_args = super()._build_wkhtmltopdf_args(
+            paperformat_id,
+            landscape,
+            specific_paperformat_args=specific_paperformat_args,
+            set_viewport_size=set_viewport_size,
+        )
+        command_args.extend(["--print-media-type"])
+        return command_args
+
     @api.model
     def _run_wkhtmltopdf(  # noqa: C901
         self,
@@ -325,24 +315,15 @@ class IrActionsReport(models.Model):
         specific_paperformat_args=None,
         set_viewport_size=False,
     ):
-        """Execute wkhtmltopdf as a subprocess in order to convert html given
-        in input into a pdf document.
+        pdf_content = super()._run_wkhtmltopdf(
+            bodies,
+            header=header,
+            footer=footer,
+            landscape=landscape,
+            specific_paperformat_args=specific_paperformat_args,
+            set_viewport_size=set_viewport_size,
+        )
 
-        :param bodies: The html bodies of the report, one per page.
-        :param header: The html header of the report containing all headers.
-        :param footer: The html footer of the report containing all footers.
-        :param landscape: Force the pdf to be rendered under a landscape
-                        format.
-        :param specific_paperformat_args: dict of prioritized paperformat
-                                        arguments.
-        :param set_viewport_size: Enable a viewport sized '1024x1280' or
-                                '1280x1024' depending of landscape arg.
-        :return: Content of the pdf as a string
-        """
-
-        # call default odoo standard function of paperformat #19896
-        # https://github.com/odoo/odoo/blob/13.0/odoo/addons/base/models
-        # /ir_actions_report.py#L243
         paperformat_id = (
             self._get_report(report_ref).get_paperformat()
             if report_ref
@@ -357,70 +338,16 @@ class IrActionsReport(models.Model):
             set_viewport_size=set_viewport_size,
         )
 
-        files_command_args = []
         temporary_files = []
-        if header:
-            head_file_fd, head_file_path = tempfile.mkstemp(
-                suffix=".html", prefix="report.header.tmp."
-            )
-            with closing(os.fdopen(head_file_fd, "wb")) as head_file:
-                head_file.write(header.encode())
-            temporary_files.append(head_file_path)
-            files_command_args.extend(["--header-html", head_file_path])
-        if footer:
-            foot_file_fd, foot_file_path = tempfile.mkstemp(
-                suffix=".html", prefix="report.footer.tmp."
-            )
-            with closing(os.fdopen(foot_file_fd, "wb")) as foot_file:
-                foot_file.write(footer.encode())
-            temporary_files.append(foot_file_path)
-            files_command_args.extend(["--footer-html", foot_file_path])
-
-        paths = []
-        for i, body in enumerate(bodies):
-            prefix = "%s%d." % ("report.body.tmp.", i)
-            body_file_fd, body_file_path = tempfile.mkstemp(
-                suffix=".html", prefix=prefix
-            )
-            with closing(os.fdopen(body_file_fd, "wb")) as body_file:
-                body_file.write(body.encode())
-            paths.append(body_file_path)
-            temporary_files.append(body_file_path)
-
-        pdf_report_fd, pdf_report_path = tempfile.mkstemp(
-            suffix=".pdf", prefix="report.tmp."
+        report_file_fd, pdf_report_path = tempfile.mkstemp(
+            suffix=".pdf", prefix="report.inherited.tmp."
         )
-        os.close(pdf_report_fd)
+        with closing(os.fdopen(report_file_fd, "wb")) as report_file:
+            report_file.write(pdf_content)
         temporary_files.append(pdf_report_path)
+
         try:
-            wkhtmltopdf = (
-                [_get_wkhtmltopdf_bin()]
-                + command_args
-                + files_command_args
-                + paths
-                + [pdf_report_path]
-            )
-            process = subprocess.Popen(
-                wkhtmltopdf, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            out, err = process.communicate()
-
-            if process.returncode not in [0, 1]:
-                if process.returncode == -11:
-                    message = (
-                        "Wkhtmltopdf failed (error code: (error code: %s). Memory limit "
-                        "too low or "
-                        "maximum file number of subprocess reached. Message : %s"
-                    )
-                else:
-                    message = "Wkhtmltopdf failed (error code: %s). Message: %s"
-                _logger.warning(message, process.returncode, err[-1000:])
-                raise UserError(message % (str(process.returncode), err[-1000:]))
-            else:
-                if err:
-                    _logger.warning("wkhtmltopdf: %s" % err)
             # Dynamic Type and Background Per Report - Company - Lang #T5886
-
             if (
                 report
                 and report.custom_report_background
@@ -432,6 +359,7 @@ class IrActionsReport(models.Model):
                 )
                 output = PdfFileWriter()
                 pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
+                temporary_files.append(temp_report_path)
 
                 # Call method for get domain related to the languages. #22260
                 lang_domain = report.with_context(**self.env.context).get_bg_per_lang()
@@ -636,6 +564,7 @@ class IrActionsReport(models.Model):
                 temp_back_id, temp_back_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="back_report.tmp."
                 )
+                temporary_files.append(temp_back_path)
                 custom_background = False
                 # From Report Type.
                 if (
@@ -683,6 +612,7 @@ class IrActionsReport(models.Model):
                     temp_report_id, temp_report_path = tempfile.mkstemp(
                         suffix=".pdf", prefix="with_back_report.tmp."
                     )
+                    temporary_files.append(temp_report_path)
                     output = PdfFileWriter()
                     pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
 
@@ -726,20 +656,19 @@ class IrActionsReport(models.Model):
                         ("report_id", "=", report.id),
                     ],
                 )
-
-            if append_attachment or prepend_attachment:
-                data = []
-                # Merge multiple prepend attachment. #T6622
-                for prepend_data in prepend_attachment:
-                    if prepend_data and prepend_data.background_pdf:
-                        data.append(base64.b64decode(prepend_data.background_pdf))
-                data.append(pdf_content)
-                # Merge multiple append attachment. #T6622
-                for append_data in append_attachment:
-                    if append_data and append_data.background_pdf:
-                        data.append(base64.b64decode(append_data.background_pdf))
-                # call function for merge pdf reports and attachments. #T6622
-                pdf_content = pdf.merge_pdf(data)
+                if append_attachment or prepend_attachment:
+                    data = []
+                    # Merge multiple prepend attachment. #T6622
+                    for prepend_data in prepend_attachment:
+                        if prepend_data and prepend_data.background_pdf:
+                            data.append(base64.b64decode(prepend_data.background_pdf))
+                    data.append(pdf_content)
+                    # Merge multiple append attachment. #T6622
+                    for append_data in append_attachment:
+                        if append_data and append_data.background_pdf:
+                            data.append(base64.b64decode(append_data.background_pdf))
+                    # call function for merge pdf reports and attachments. #T6622
+                    pdf_content = pdf.merge_pdf(data)
 
         # Manual cleanup of the temporary files
         for temporary_file in temporary_files:
