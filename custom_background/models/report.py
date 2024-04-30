@@ -251,7 +251,7 @@ class IrActionsReport(models.Model):
                 )
                 output = PdfFileWriter()
                 pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
-
+                temporary_files.append(temp_report_path)
                 # Call method for get domain related to the languages. #22260
                 lang_domain = self.get_bg_per_lang()
 
@@ -424,6 +424,7 @@ class IrActionsReport(models.Model):
                 temp_back_id, temp_back_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="back_report.tmp."
                 )
+                temporary_files.append(temp_back_path)
                 custom_background = False
                 # From Report Type.
                 if (
@@ -467,6 +468,7 @@ class IrActionsReport(models.Model):
                     temp_report_id, temp_report_path = tempfile.mkstemp(
                         suffix=".pdf", prefix="with_back_report.tmp."
                     )
+                    temporary_files.append(temp_report_path)
                     output = PdfFileWriter()
                     pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
 
