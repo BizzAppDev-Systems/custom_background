@@ -786,7 +786,7 @@ class IrActionsReport(models.Model):
         for temporary_file in temporary_files:
             try:
                 os.unlink(temporary_file)
-            except (OSError, IOError):  # noqa: B014
+            except (OSError, IOError):  # noqa
                 _logger.error("Error when trying to remove file %s" % temporary_file)
 
         return pdf_content
