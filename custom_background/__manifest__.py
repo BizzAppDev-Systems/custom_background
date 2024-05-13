@@ -21,5 +21,5 @@
             "/custom_background/static/src/scss/report_qweb_pdf.scss",
         ],
     },
-    "license": "Other proprietary",
+    "license": "AGPL-3",
 }
