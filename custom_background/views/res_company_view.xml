@@ -42,10 +42,10 @@
                                 </group>
                             </group>
                         </form>
-                        <tree>
+                        <list>
                             <field name="lang_id" />
                             <field name="file_name" string="Background PDF" />
-                        </tree>
+                        </list>
                     </field>
                 </page>
             </xpath>

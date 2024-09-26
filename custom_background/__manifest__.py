@@ -1,12 +1,12 @@
 # See LICENSE file for full copyright and licensing details.
 {
     "name": "Custom Background",
-    "version": "17.0.1.0.2",
+    "version": "18.0.1.0.0",
     "author": "BizzAppDev Systems Pvt. Ltd.",
     "website": "http://www.bizzappdev.com",
     "category": "GenericModules",
     "depends": ["base", "web"],
-    "summary": "Custom  Background",
+    "summary": "Custom Background",
     "images": ["images/image.png"],
     "init_xml": [],
     "data": [

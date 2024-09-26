@@ -59,7 +59,7 @@
                                 </group>
                             </sheet>
                         </form>
-                        <tree>
+                        <list>
                             <field name="type" />
                             <field name="page_number" column_invisible="True" />
                             <field name="page_expression" column_invisible="True" />
@@ -68,7 +68,7 @@
                             <!-- New field. #22260 -->
                             <field name="lang_id" />
                             <field name="report_id" column_invisible="True" />
-                        </tree>
+                        </list>
                     </field>
                     <i
                         class="fa fa-info fa-3x text-info float-left"
@@ -185,10 +185,10 @@
                                 </group>
                             </group>
                         </form>
-                        <tree>
+                        <list>
                             <field name="lang_id" />
                             <field name="file_name" string="Background PDF" />
-                        </tree>
+                        </list>
                     </field>
                 </page>
 
@@ -211,12 +211,12 @@
                                 </group>
                             </group>
                         </form>
-                        <tree>
+                        <list>
                             <field name="type_attachment" />
                             <field name="lang_id" />
                             <field name="company_id" />
                             <field name="file_name" string="Background PDF" />
-                        </tree>
+                        </list>
                     </field>
                 </page>
             </xpath>
