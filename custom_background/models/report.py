@@ -317,6 +317,7 @@ class IrActionsReport(models.Model):
     ):
         pdf_content = super()._run_wkhtmltopdf(
             bodies,
+            report_ref=report_ref,
             header=header,
             footer=footer,
             landscape=landscape,
