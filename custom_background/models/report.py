@@ -652,21 +652,23 @@ class IrActionsReport(models.Model):
                 )
             if report.custom_report_type == "dynamic_per_report_company_lang":
                 lang_domain = [("background_pdf", "!=", False)]
-                # search append attachment record. #T6622
-                append_attachment = report.per_report_com_lang_bg_ids.search(
-                    lang_domain
-                    + [
-                        ("type_attachment", "=", "append"),
-                        ("report_id", "=", report.id),
-                    ],
+                company = self._context.get("background_company")
+                # Filter append attachments for the current report and company #T9428
+                append_attachment = report.per_report_com_lang_bg_ids.filtered(
+                    lambda bg: bg.type_attachment == "append"
+                    and bg.background_pdf
+                    # Match selected company #T9428
+                    and bg.company_id.id == company.id
+                    # Match current report #T9428
+                    and bg.report_id.id == report.id
                 )
-                # search prepend attachment record. #T6622
-                prepend_attachment = report.per_report_com_lang_bg_ids.search(
-                    lang_domain
-                    + [
-                        ("type_attachment", "=", "prepend"),
-                        ("report_id", "=", report.id),
-                    ],
+                prepend_attachment = report.per_report_com_lang_bg_ids.filtered(
+                    lambda bg: bg.type_attachment == "prepend"
+                    and bg.background_pdf
+                    # Match selected company #T9428
+                    and bg.company_id.id == company.id
+                    # Match current report #T9428
+                    and bg.report_id.id == report.id
                 )
             data = []
 
