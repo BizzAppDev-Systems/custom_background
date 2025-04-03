@@ -651,7 +651,6 @@ class IrActionsReport(models.Model):
                     ],
                 )
             if report.custom_report_type == "dynamic_per_report_company_lang":
-                lang_domain = [("background_pdf", "!=", False)]
                 company = self._context.get("background_company")
                 # Filter append attachments for the current report and company #T9428
                 append_attachment = report.per_report_com_lang_bg_ids.filtered(
