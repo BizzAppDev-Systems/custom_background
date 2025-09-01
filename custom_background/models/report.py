@@ -448,7 +448,6 @@ class IrActionsReport(models.Model):
                         expression.page_expression,
                         eval_dict,
                         mode="exec",
-                        nocopy=True,
                     )
                     if (
                         expression.fall_back_to_company
