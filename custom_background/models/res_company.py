@@ -43,22 +43,28 @@ class ResCompany(models.Model):
             is_fall_back_to_company = dynamic_report_ids.mapped(
                 "background_ids"
             ).filtered(lambda r: r.fall_back_to_company)
-        # If fall_back_to_company and custom bg per lang is not set then raise warning.
-        if is_fall_back_to_company and not (
-            self.is_bg_per_lang and self.bg_per_lang_ids
-        ):
-            raise UserError(
-                _(
-                    "Please configure Custom Background Per Language because "
-                    "'Fall Back To Company' is set in the dynamic type report level!"
+
+        companies = self
+        companies |= self.child_ids
+        for company in companies:
+            # If fall_back_to_company and custom bg per lang is not set then
+            # raise warning.
+            if is_fall_back_to_company and not (
+                company.is_bg_per_lang and company.bg_per_lang_ids
+            ):
+                raise UserError(
+                    _(
+                        "Please configure Custom Background Per Language because "
+                        "'Fall Back To Company' is set in the dynamic type report "
+                        "level!"
+                    )
                 )
-            )
-        # If any report with company type and custom bg per lang is not set at
-        # res_company level then raise warning.
-        if report_ids and not (self.is_bg_per_lang and self.bg_per_lang_ids):
-            raise UserError(
-                _(
-                    "Please configure Custom Background Per Language because "
-                    "'From Company' type is set at the Report level!"
+            # If any report with company type and custom bg per lang is not set at
+            # res_company level then raise warning.
+            if report_ids and not (company.is_bg_per_lang and company.bg_per_lang_ids):
+                raise UserError(
+                    _(
+                        "Please configure Custom Background Per Language because "
+                        "'From Company' type is set at the Report level!"
+                    )
                 )
-            )
