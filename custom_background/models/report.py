@@ -75,7 +75,8 @@ class IrActionsReport(models.Model):
     _inherit = "ir.actions.report"
 
     custom_report_background = fields.Boolean()
-    custom_report_background_image = fields.Binary(string="Background Image")
+    # Changed string from "Background Image" to "Background PDF" for clarity #T11868
+    custom_report_background_image = fields.Binary(string="Background PDF")
     custom_report_type = fields.Selection(
         [
             ("company", "From Company"),
@@ -107,6 +108,23 @@ class IrActionsReport(models.Model):
         "report_id",
         string="Per Report Company Language Background",
     )
+
+    def _pre_render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        """Inherited method which set background_company in context before
+        PDF rendering.
+
+        This is called for PDF" clicks, ensuring
+        the company background is set even when _render_qweb_pdf() is bypassed.
+        Only applies to account.move reports (invoices) to avoid breaking
+        other reports like sale.order (quotation/order). #T11976
+        """
+        if res_ids and report_ref:
+            report = self._get_report(report_ref)
+            if report.model == 'account.move':
+                invoices = self.env['account.move'].browse(res_ids)
+                if invoices and hasattr(invoices, 'company_id') and invoices.company_id:
+                    self = self.with_context(background_company=invoices.company_id)
+        return super()._pre_render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
 
     def get_company_without_custom_bg(self):
         """New method for search and get company in which custom bg per language is not
@@ -240,7 +258,8 @@ class IrActionsReport(models.Model):
         based on the per company and per Lang. #T5886"""
         self.ensure_one()
         lang_code = self.get_lang()
-        company = self._context.get("background_company")
+        # Added fallback if background_company not in context #T11868
+        company = self._context.get("background_company") or self.env.company
 
         # Get the custom background if company and Lang are both matched. #T5886
         custom_background = self.per_report_com_lang_bg_ids.filtered(
@@ -284,7 +303,8 @@ class IrActionsReport(models.Model):
         New method for get custom background based on the partner languages for
         report type and company type. #22260
         """
-        company_background = self._context.get("background_company")
+        # Added fallback if background_company not in context #T11868
+        company_background = self._context.get("background_company") or self.env.company
         lang_code = self.get_lang()
         # If custom_report_type is dynamic then set language related domains.
         if self.custom_report_type == "dynamic":
@@ -309,7 +329,8 @@ class IrActionsReport(models.Model):
             custom_bg_from = self
         # If custom_report_type is company then set current company id from context.
         if self.custom_report_type == "company" or not self.custom_report_type:
-            custom_bg_from = company_background
+            # Added fallback if background_company not in context #T11868
+            custom_bg_from = company_background or self.env.company
 
         # Filter records from report_background_lang model based on the languages.
         # custom_bg_from: company_id or report_id(self).
@@ -384,7 +405,10 @@ class IrActionsReport(models.Model):
                     limit=1,
                 )
 
-            company_background = self._context.get("background_company")
+            # Added fallback if background_company not in context #T11868
+            company_background = (
+                self._context.get("background_company") or self.env.company
+            )
             company_background_img = company_background.custom_report_background_image
             # Start. #22260
             if report.is_bg_per_lang:
@@ -532,11 +556,15 @@ class IrActionsReport(models.Model):
                     report.custom_report_type == "company"
                     or not report.custom_report_type
                 )
-                and self._context.get("background_company")  # #19896
+                and (
+                    # Added fallback if background_company not in context #T11868
+                    self._context.get("background_company") or self.env.company
+                )  # #19896
             ):
                 # report background will be displayed based on the current
                 # company #19896
-                company_id = self._context.get("background_company")
+                # Added fallback if background_company not in context #T11868
+                company_id = self._context.get("background_company") or self.env.company
                 # 222760 Starts. If background per lang is True then call method for
                 # get custom background from company based on different languages.
                 if report.is_bg_per_lang:
@@ -597,6 +625,7 @@ class IrActionsReport(models.Model):
         set_viewport_size=False,
     ):
         report = self._get_report(report_ref)
+
         # Build the base command args for wkhtmltopdf bin
 
         pdf_content = super()._run_wkhtmltopdf(
@@ -651,7 +680,8 @@ class IrActionsReport(models.Model):
                     ],
                 )
             if report.custom_report_type == "dynamic_per_report_company_lang":
-                company = self._context.get("background_company")
+                # Added fallback if background_company not in context #T11868
+                company = self._context.get("background_company") or self.env.company
                 # Filter append attachments for the current report and company #T9428
                 append_attachment = report.per_report_com_lang_bg_ids.filtered(
                     lambda bg: bg.type_attachment == "append"
