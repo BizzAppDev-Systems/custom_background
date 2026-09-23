@@ -30,3 +30,4 @@
 *************
 * 13-05-2024 - T7747 - KRT - Migrate custom_background from 16.0 to 17.0.
 * 20-11-2024 - T8639 - KRD - Added the missing parameter in inherited method.
+* 23-09-2026 - T12134 - VIR - custom_background Migration v19 to v20.

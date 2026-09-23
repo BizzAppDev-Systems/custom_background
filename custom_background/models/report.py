@@ -7,7 +7,7 @@ from contextlib import closing
 from itertools import islice
 
 from lxml import etree
-from PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfReader, PdfWriter
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
@@ -204,12 +204,16 @@ class IrActionsReport(models.Model):
         temp_back_id, temp_back_path = tempfile.mkstemp(
             suffix=".pdf", prefix="back_report.tmp."
         )
-        back_data = base64.b64decode(custom_background_data)
+        # convert to base64 for b64decode #T12134
+        back_data = base64.b64decode(custom_background_data.to_base64())
         with closing(os.fdopen(temp_back_id, "wb")) as back_file:
             back_file.write(back_data)
-        pdf_reader_watermark = PdfFileReader(temp_back_path, "rb")
-        watermark_page = pdf_reader_watermark.getPage(0)
-        watermark_page.mergePage(page)
+        # PyPDF2 v20 api changed from PdfFileReader to PdfReader #T12134
+        pdf_reader_watermark = PdfReader(temp_back_path)
+        # PyPDF2 v20 api changed from getPage to pages list access #T12134
+        watermark_page = pdf_reader_watermark.pages[0]
+        # PyPDF2 v20 api changed from mergePage to merge_page #T12134
+        watermark_page.merge_page(page)
         return watermark_page
 
     def get_lang(self):
@@ -218,7 +222,8 @@ class IrActionsReport(models.Model):
         partner is set in that model, else set current logged in user's language.
         #22260
         """
-        res_record_ids = self._context.get("custom_bg_res_ids")
+        # Deprecated _context attribute changed to self.env.context #T12134
+        res_record_ids = self.env.context.get("custom_bg_res_ids")
         model = self.env[self.model]
         record_ids = model.browse(res_record_ids)
         lang_code = False
@@ -232,7 +237,8 @@ class IrActionsReport(models.Model):
         else:
             # If partner_id field is not in model or partner_id is not set then consider
             # current user's language.
-            lang_code = self._context.get("lang")
+            # Deprecated _context attribute changed to self.env.context #T12134
+            lang_code = self.env.context.get("lang")
         return lang_code
 
     def _get_background_per_report_company_language(self):
@@ -240,7 +246,8 @@ class IrActionsReport(models.Model):
         based on the per company and per Lang. #T5886"""
         self.ensure_one()
         lang_code = self.get_lang()
-        company = self._context.get("background_company")
+        # Deprecated _context attribute changed to self.env.context #T12134
+        company = self.env.context.get("background_company")
 
         # Get the custom background if company and Lang are both matched. #T5886
         custom_background = self.per_report_com_lang_bg_ids.filtered(
@@ -284,7 +291,8 @@ class IrActionsReport(models.Model):
         New method for get custom background based on the partner languages for
         report type and company type. #22260
         """
-        company_background = self._context.get("background_company")
+        # Deprecated _context attribute changed to self.env.context #T12134
+        company_background = self.env.context.get("background_company")
         lang_code = self.get_lang()
         # If custom_report_type is dynamic then set language related domains.
         if self.custom_report_type == "dynamic":
@@ -318,7 +326,8 @@ class IrActionsReport(models.Model):
         )
 
         # Set 1st custom background.
-        custom_background = custom_bg_lang[:1].background_pdf
+        # convert to base64 for b64decode #T12134
+        custom_background = custom_bg_lang[:1].background_pdf.to_base64()
         return custom_background
 
     def _dynamic_background_per_report(self, report, pdf_report_path):  # noqa: C901
@@ -334,8 +343,10 @@ class IrActionsReport(models.Model):
             temp_report_id, temp_report_path = tempfile.mkstemp(
                 suffix=".pdf", prefix="with_back_report.tmp."
             )
-            output = PdfFileWriter()
-            pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
+            # PyPDF2 v20 api changed from PdfFileWriter to PdfWriter #T12134
+            output = PdfWriter()
+            # PyPDF2 v20 api changed from PdfFileReader to PdfReader #T12134
+            pdf_reader_content = PdfReader(pdf_report_path)
             temporary_files.append(pdf_reader_content)
 
             # Call method for get domain related to the languages. #22260
@@ -384,7 +395,8 @@ class IrActionsReport(models.Model):
                     limit=1,
                 )
 
-            company_background = self._context.get("background_company")
+            # Deprecated _context attribute changed to self.env.context #T12134
+            company_background = self.env.context.get("background_company")
             company_background_img = company_background.custom_report_background_image
             # Start. #22260
             if report.is_bg_per_lang:
@@ -393,10 +405,12 @@ class IrActionsReport(models.Model):
                     lambda lang: lang.lang_id.code == lang_code
                 )
             # End. #22260
-            for i in range(pdf_reader_content.getNumPages()):
+            # PyPDF2 v20 api changed from getNumPages to len pages #T12134
+            for i in range(len(pdf_reader_content.pages)):
                 watermark = ""
                 if report.custom_report_type == "dynamic_per_report_company_lang":
                     watermark = lang_domain
+                # PyPDF2 v20 api changed from getPage to pages list access #T12134
                 elif first_page and i == 0:
                     if first_page.fall_back_to_company and company_background:
                         # Start. #22260
@@ -409,7 +423,8 @@ class IrActionsReport(models.Model):
                     # Fix page 1st issue. #22260
                     elif first_page.background_pdf:
                         watermark = first_page.background_pdf
-                elif last_page and i == pdf_reader_content.getNumPages() - 1:
+                # PyPDF2 v20 api changed from getNumPages to len pages #T12134
+                elif last_page and i == len(pdf_reader_content.pages) - 1:
                     if last_page.fall_back_to_company and company_background:
                         # Start. #22260
                         # If is_bg_per_lang then get custom bg from the company.
@@ -494,11 +509,15 @@ class IrActionsReport(models.Model):
                 if watermark:
                     page = report.add_pdf_watermarks(
                         watermark,
-                        pdf_reader_content.getPage(i),
+                        # PyPDF2 v20 api changed from getPage to pages list
+                        # access #T12134
+                        pdf_reader_content.pages[i],
                     )
                 else:
-                    page = pdf_reader_content.getPage(i)
-                output.addPage(page)
+                    # PyPDF2 v20 api changed from getPage to pages list access #T12134
+                    page = pdf_reader_content.pages[i]
+                # PyPDF2 v20 api changed from addPage to add_page #T12134
+                output.add_page(page)
             output.write(open(temp_report_path, "wb"))
             pdf_report_path = temp_report_path
             os.close(temp_report_id)
@@ -521,7 +540,10 @@ class IrActionsReport(models.Model):
                     ).get_bg_per_lang()
                 # 222760 Ends.
                 else:
-                    custom_background = report.custom_report_background_image
+                    # convert to base64 for b64decode #T12134
+                    custom_background = (
+                        report.custom_report_background_image.to_base64()
+                    )
                 # 222760 Ends.
             # From Company Type.
             if (
@@ -531,11 +553,13 @@ class IrActionsReport(models.Model):
                     report.custom_report_type == "company"
                     or not report.custom_report_type
                 )
-                and self._context.get("background_company")  # #19896
+                # Deprecated _context attribute changed to self.env.context #T12134
+                and self.env.context.get("background_company")  # #19896
             ):
                 # report background will be displayed based on the current
                 # company #19896
-                company_id = self._context.get("background_company")
+                # Deprecated _context attribute changed to self.env.context #T12134
+                company_id = self.env.context.get("background_company")
                 # 222760 Starts. If background per lang is True then call method for
                 # get custom background from company based on different languages.
                 if report.is_bg_per_lang:
@@ -544,25 +568,36 @@ class IrActionsReport(models.Model):
                     ).get_bg_per_lang()
                 # 222760 Ends.
                 else:
-                    custom_background = company_id.custom_report_background_image
+                    # convert to base64 for b64decode #T12134
+                    custom_background = (
+                        company_id.custom_report_background_image.to_base64()
+                    )
             # If background found from any type then set that to the report.
             if custom_background:
+                # convert to base64 for b64decode #T12134
                 back_data = base64.b64decode(custom_background)
                 with closing(os.fdopen(temp_back_id, "wb")) as back_file:
                     back_file.write(back_data)
                 temp_report_id, temp_report_path = tempfile.mkstemp(
                     suffix=".pdf", prefix="with_back_report.tmp."
                 )
-                output = PdfFileWriter()
-                pdf_reader_content = PdfFileReader(pdf_report_path, "rb")
+                # PyPDF2 v20 api changed from PdfFileWriter to PdfWriter #T12134
+                output = PdfWriter()
+                # PyPDF2 v20 api changed from PdfFileReader to PdfReader #T12134
+                pdf_reader_content = PdfReader(pdf_report_path)
                 temporary_files.append(pdf_reader_content)
 
-                for i in range(pdf_reader_content.getNumPages()):
-                    page = pdf_reader_content.getPage(i)
-                    pdf_reader_watermark = PdfFileReader(temp_back_path, "rb")
-                    watermark = pdf_reader_watermark.getPage(0)
-                    watermark.mergePage(page)
-                    output.addPage(watermark)
+                # PyPDF2 v20 api changed from getNumPages to len pages #T12134
+                for i in range(len(pdf_reader_content.pages)):
+                    # PyPDF2 v20 api changed from getPage to pages list access #T12134
+                    page = pdf_reader_content.pages[i]
+                    # PyPDF2 v20 api changed from PdfFileReader to PdfReader #T12134
+                    pdf_reader_watermark = PdfReader(temp_back_path)
+                    watermark = pdf_reader_watermark.pages[0]
+                    # PyPDF2 v20 api changed from mergePage to merge_page #T12134
+                    watermark.merge_page(page)
+                    # PyPDF2 v20 api changed from addPage to add_page #T12134
+                    output.add_page(watermark)
                 output.write(open(temp_report_path, "wb"))
                 pdf_report_path = temp_report_path
                 os.close(temp_report_id)
@@ -585,27 +620,33 @@ class IrActionsReport(models.Model):
         return command_args
 
     @api.model
-    def _run_wkhtmltopdf(  # noqa: C901
+    # Method renamed from _run_wkhtmltopdf to _run_pdf_engine_without_processing #T12134
+    def _run_pdf_engine_without_processing(
         self,
+        engine_name,
         bodies,
         report_ref=False,
+        *,
         header=None,
         footer=None,
         landscape=False,
         specific_paperformat_args=None,
-        set_viewport_size=False,
+        **kwargs,
     ):
         report = self._get_report(report_ref)
         # Build the base command args for wkhtmltopdf bin
 
-        pdf_content = super()._run_wkhtmltopdf(
+        # Method renamed from _run_wkhtmltopdf to
+        # _run_pdf_engine_without_processing #T12134
+        pdf_content = super()._run_pdf_engine_without_processing(
+            engine_name,
             bodies,
             report_ref=report_ref,
             header=header,
             footer=footer,
             landscape=landscape,
             specific_paperformat_args=specific_paperformat_args,
-            set_viewport_size=set_viewport_size,
+            **kwargs,
         )
 
         temporary_files = []
@@ -650,7 +691,8 @@ class IrActionsReport(models.Model):
                     ],
                 )
             if report.custom_report_type == "dynamic_per_report_company_lang":
-                company = self._context.get("background_company")
+                # Deprecated _context attribute changed to self.env.context #T12134
+                company = self.env.context.get("background_company")
                 # Filter append attachments for the current report and company #T9428
                 append_attachment = report.per_report_com_lang_bg_ids.filtered(
                     lambda bg: bg.type_attachment == "append"
@@ -673,14 +715,20 @@ class IrActionsReport(models.Model):
             # Merge multiple prepend attachment. #T6622
             for prepend_data in prepend_attachment:
                 if prepend_data and prepend_data.background_pdf:
-                    data.append(base64.b64decode(prepend_data.background_pdf))
+                    # convert to base64 for b64decode #T12134
+                    data.append(
+                        base64.b64decode(prepend_data.background_pdf.to_base64())
+                    )
 
             data.append(pdf_content)
 
             # Merge multiple append attachment. #T6622
             for append_data in append_attachment:
                 if append_data and append_data.background_pdf:
-                    data.append(base64.b64decode(append_data.background_pdf))
+                    # convert to base64 for b64decode #T12134
+                    data.append(
+                        base64.b64decode(append_data.background_pdf.to_base64())
+                    )
 
             # call function for merge pdf reports and attachments. #T6622
             pdf_content = pdf.merge_pdf(data)

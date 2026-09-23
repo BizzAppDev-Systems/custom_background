@@ -1,7 +1,7 @@
 # See LICENSE file for full copyright and licensing details.
 {
     "name": "Custom Background",
-    "version": "19.0.1.0.0",
+    "version": "20.0.0.0.0",
     "author": "BizzAppDev Systems Pvt. Ltd.",
     "website": "http://www.bizzappdev.com",
     "category": "GenericModules",
@@ -10,7 +10,7 @@
     "images": ["images/image.png"],
     "init_xml": [],
     "data": [
-        "security/ir.model.access.csv",
+        "security/ir.access.csv",
         "views/ir_actions.xml",
         "views/res_company_view.xml",
     ],
