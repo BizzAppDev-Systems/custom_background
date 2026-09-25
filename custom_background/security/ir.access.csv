@@ -1,0 +1,7 @@
+id,name,model_id,group_id/id,operation,domain
+access_report_background_line_user,access_report_background_line_user,report.background.line,base.group_user,r,
+access_report_background_lang_user,access_report_background_lang_user,report.background.lang,base.group_user,r,
+access_report_background_line_system,access_report_background_line_system,report.background.line,base.group_system,crud,
+access_report_background_lang_system,access_report_background_lang_system,report.background.lang,base.group_system,crud,
+access_report_company_background_lang_user,access_report_company_background_lang_user,report.company.background.lang,base.group_user,r,
+access_report_company_background_lang_system,access_report_company_background_lang_system,report.company.background.lang,base.group_system,crud,
